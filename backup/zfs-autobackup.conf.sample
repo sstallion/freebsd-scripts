@@ -2,7 +2,7 @@ default_flags="
         --verbose
         --allow-empty
         --filter-properties refreservation
-        --set-properties canmount=noauto,mountpoint=none,readonly=on"
+        --set-properties canmount=noauto,keylocation=prompt,mountpoint=none,readonly=on"
 default_schedule="1,1d1w,1w1m,1m1y,1y10y"
 default_snapshot_format="{}-%Y-%m-%d-%H:%M:%S"
 
