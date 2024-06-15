@@ -1,0 +1,10 @@
+default_flags="
+        --create-full-path
+        --exclude-special-files
+        --preserve-numerical-ids
+        --print-statistics"
+default_retention="90D"
+
+local_source="/"
+local_target="/var/backups/rdiff-backup"
+local_files="/usr/local/etc/rdiff-backup.d/local"

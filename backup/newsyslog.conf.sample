@@ -1,1 +1,1 @@
-/var/log/backup/*.log			640  4	   *	$W0	GJ
+/var/log/backups/*.log			640  4	   *	$W0	GJ

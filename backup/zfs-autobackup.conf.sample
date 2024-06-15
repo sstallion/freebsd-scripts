@@ -1,0 +1,14 @@
+default_flags="
+        --verbose
+        --allow-empty
+        --filter-properties refreservation
+        --set-properties canmount=noauto,mountpoint=none,readonly=on"
+default_schedule="1,1d1w,1w1m,1m1y,1y10y"
+default_snapshot_format="{}-%Y-%m-%d-%H:%M:%S"
+
+# Take snapshots of local datasets only;
+# see: https://github.com/psy0rz/zfs_autobackup/wiki#use-as-snapshot-tool
+local_target_path=
+
+remote_ssh_target="$(hostname -s)@<username>.rsync.net"
+remote_target_path="<dataset>/$(hostname -s)"
