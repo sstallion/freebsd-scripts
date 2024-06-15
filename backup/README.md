@@ -6,7 +6,7 @@ backups (`rdiff-backup.sh`) and ZFS snapshots and backups (`zfs-autobackup.sh`).
 
 The following dependencies should be installed to use these scripts:
 ```
-# pkg install flock moreutils py-rdiff-backup py-zfs-autobackup
+# pkg install flock moreutils py39-rdiff-backup py39-zfs-autobackup
 ```
 
 The following should be added to `/etc/crontab` to schedule backups:
