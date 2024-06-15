@@ -43,7 +43,7 @@ namevar()
 setvars()
 {
 	lockfile=$(printf "/var/run/rdiff-backup-%s.lock" $name)
-	logfile=$(printf "/var/log/backup/rdiff-backup-%s.log" $name)
+	logfile=$(printf "/var/log/backups/rdiff-backup-%s.log" $name)
 
 	namevar _flags _source _target _files _retention
 

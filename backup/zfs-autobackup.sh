@@ -42,7 +42,7 @@ namevar()
 setvars()
 {
 	lockfile=$(printf "/var/run/zfs-autobackup-%s.lock" $name)
-	logfile=$(printf "/var/log/backup/zfs-autobackup-%s.log" $name)
+	logfile=$(printf "/var/log/backups/zfs-autobackup-%s.log" $name)
 
 	namevar _flags _target_path \
 		_ssh_config _ssh_source _ssh_target \
