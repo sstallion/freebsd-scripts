@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# PROVIDE: venti
+# REQUIRE: DAEMON
+# BEFORE:  LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="venti"
+desc="Venti archival server"
+rcvar="${name}_enable"
+
+set_rcvar venti_enable "NO"
+set_rcvar venti_config "/usr/local/etc/${name}.conf"
+set_rcvar venti_fshalt_command ""
+set_rcvar venti_fshalt_timeout "30"
+
+load_rc_config $name
+
+command="/usr/local/plan9/bin/${name}/${name}"
+command_args="-c ${venti_config}"
+stop_precmd="${name}_fshalt"
+required_files="${venti_config}"
+
+extra_commands="fshalt"
+fshalt_cmd="${name}_fshalt"
+
+venti_fshalt()
+{
+	if [ -n "${venti_fshalt_command}" ]; then
+		sh -c "sleep ${venti_fshalt_timeout} && (
+			echo \"${venti_fshalt_timeout} second watchdog\" \
+			     \"timeout expired. fshalt terminated.\"
+			pkill -KILL -P \$\$
+		) &
+		${venti_fshalt_command} | while read line; do
+			echo \$line
+			if [ \"\${line}\" = \"done halting\" ]; then
+				pkill -TERM -P \$!,\$\$
+			fi
+		done" 2>/dev/null
+	fi
+}
+
+run_rc_command "$1"
