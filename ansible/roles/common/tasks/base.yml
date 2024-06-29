@@ -1,0 +1,57 @@
+- block:
+  - name: Updating /etc/hosts (localhost)
+    replace:
+      path: /etc/hosts
+      regexp: '^((127\.0\.0\.1|::1)\s.*localhost\.).*$'
+      replace: '\g<1>{{ ansible_domain }}'
+    when: ansible_domain
+
+  - name: Updating /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      regexp: '^{{ ansible_default_ipv4.address }}\s.*$'
+      line: "{{ ansible_default_ipv4.address }}\t\t{{ ansible_fqdn }} {{ ansible_hostname }}"
+    when: ansible_default_ipv4
+
+  - name: Installing /etc/resolv.conf
+    copy:
+      src: files/resolv.conf
+      dest: /etc
+
+- name: Linking Periodic Scripts
+  file:
+    src: "{{ item.src }}"
+    dest: "/usr/local/etc/periodic/{{ item.src | relpath(item.root) }}"
+    state: link
+  with_filetree: "{{ scripts_dir }}/periodic/"
+  when: item.state == "file"
+
+- name: Installing periodic.conf
+  copy:
+    src: "files/periodic.conf"
+    dest: /etc
+
+- name: Installing root's crontab
+  copy:
+    src: "files/crontab"
+    dest: /etc
+
+- name: Installing /etc/freebsd-update.conf
+  copy:
+    src: files/freebsd-update.conf
+    dest: /etc
+
+- name: Enable Kernel Crash Dumps
+  shell: |
+    sysrc dumpdev="AUTO"
+  changed_when: false
+
+- name: Installing pkg.conf
+  copy:
+    src: files/pkg.conf
+    dest: /usr/local/etc
+
+- name: Installing ttys
+  copy:
+    src: files/ttys
+    dest: /etc

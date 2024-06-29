@@ -1,0 +1,35 @@
+- name: Installing dma.conf
+  template:
+    src: templates/dma/dma.conf.j2
+    dest: /etc/dma/dma.conf
+
+- name: Installing auth.conf
+  template:
+    src: templates/dma/auth.conf.j2
+    dest: /etc/dma/auth.conf
+    group: mail
+    mode: 0640
+
+- name: Installing mailer.conf
+  copy:
+    src: /usr/share/examples/dma/mailer.conf
+    dest: /etc/mail
+
+- block:
+  - name: Installing aliases
+    copy:
+      src: files/aliases
+      dest: /etc
+    register: aliases
+
+  # This is not strictly necessary; DMA parses aliases directly.
+  - name: Rebuilding aliases.db
+    command: newaliases
+    changed_when: false
+    when: aliases.changed
+
+- name: Enablng dma in rc.conf
+  shell: |
+    sysrc sendmail_enable="NONE"
+    sysrc dma_flushq_enable="YES"
+  changed_when: false

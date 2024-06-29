@@ -1,0 +1,6 @@
+- name: TODO
+  hosts: localhost
+  roles:
+    - common
+  # vars:
+  #   motd_sitename: quuxotic.net

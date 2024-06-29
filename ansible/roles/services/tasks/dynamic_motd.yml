@@ -1,0 +1,23 @@
+- name: Installing dynamic_motd
+  command: pkg install -y dynamic_motd
+  changed_when: false
+
+- name: Installing rc.motd
+  copy:
+    src: '{{ item }}'
+    dest: /usr/local/etc
+  with_items:
+    - files/motd.subr
+    - files/rc.motd
+
+- name: Enabling dynamic_motd in rc.conf
+  command: sysrc {{ item }}
+  changed_when: false
+  with_items:
+    - update_motd="NO"
+    - dynamic_motd="YES"
+
+- name: Setting MOTD site name in rc.conf
+  command: sysrc motd_sitename="{{ motd_sitename }}"
+  changed_when: false
+  when: motd_sitename is defined

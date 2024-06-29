@@ -1,0 +1,10 @@
+- name: Installing sshd_config
+  copy:
+    src: files/sshd_config
+    dest: /etc/ssh/
+
+- name: Enabling sshd in rc.conf
+  shell: |
+    sysrc sshd_enable="YES"
+    sysrc sshd_ecdsa_enable="NO"
+  changed_when: false

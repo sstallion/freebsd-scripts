@@ -1,0 +1,20 @@
+- block:
+  - name: Installing oath-toolkit
+    command: pkg install -y oath-toolkit
+    changed_when: false
+
+  - name: Installing users.oath
+    copy:
+      content: ''
+      dest: /usr/local/etc/users.oath
+      mode: 0600
+      force: false
+
+# tweak config for pam.d and sshd_config here
+
+- name: Enabling sshd in rc.conf
+  command: sysrc {{ item }}
+  changed_when: false
+  with_items:
+    - sshd_enable="YES"
+    - sshd_ecdsa_enable="NO"

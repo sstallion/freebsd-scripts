@@ -1,0 +1,21 @@
+- name: Installing syslog.conf
+  copy:
+    src: files/syslog.conf
+    dest: /etc/
+
+- name: Installing syslog.d
+  copy:
+    src: files/syslog.d/
+    dest: /usr/local/etc/syslog.d/
+
+- name: Installing newsyslog.conf.d
+  copy:
+    src: files/newsyslog.conf.d/
+    dest: /usr/local/etc/newsyslog.conf.d/
+
+- command: newsyslog -C
+  changed_when: false
+
+- shell: |
+    sysrc syslogd_flags="-ss"
+  changed_when: false

@@ -1,0 +1,10 @@
+- block:
+  - name: Install CA Certificates
+    copy:
+      src: files/certs/
+      dest: /usr/local/share/certs
+    register: certs
+
+  - name: Rebuild CA Certificate List
+    when: certs.changed
+    command: certctl rehash

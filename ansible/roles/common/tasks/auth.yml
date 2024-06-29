@@ -1,0 +1,9 @@
+- block:
+  - name: Installing sudo
+    command: pkg install -y sudo
+    changed_when: false
+
+  - copy:
+      src: files/sudoers
+      dest: /usr/local/etc/
+      mode: 0440

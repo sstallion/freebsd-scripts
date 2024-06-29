@@ -1,0 +1,4 @@
+- name: TODO
+  hosts: localhost
+  roles:
+    - common

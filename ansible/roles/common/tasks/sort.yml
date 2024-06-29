@@ -1,0 +1,27 @@
+- name: Sorting /etc/passwd
+  shell: |
+    tmpfile=$(mktemp)
+    trap "rm -f $tmpfile" EXIT
+    sort -n -k 3 -t : -o $tmpfile /etc/master.passwd
+    install -m 600 $tmpfile /etc/master.passwd
+    pwd_mkdb -p /etc/master.passwd
+  changed_when: false
+
+- name: Sorting /etc/group
+  shell: |
+    tmpfile=$(mktemp)
+    trap "rm -f $tmpfile" EXIT
+    sort -n -k 3 -t : -o $tmpfile /etc/group
+    install -m 644 $tmpfile /etc/group
+  changed_when: false
+
+- name: Sorting files
+  shell: |
+    tmpfile=$(mktemp)
+    trap "rm -f $tmpfile" EXIT
+    sort -o $tmpfile {{ item }}
+    install -m 644 $tmpfile  {{ item }}
+  changed_when: false
+  with_items:
+    - /etc/rc.conf
+    - /boot/loader.conf

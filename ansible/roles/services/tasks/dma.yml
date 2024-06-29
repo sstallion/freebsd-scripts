@@ -1,0 +1,32 @@
+- name: Installing dma.conf
+  template:
+    src: templates/dma/dma.conf.j2
+    dest: /etc/dma/dma.conf
+
+- name: Installing auth.conf
+  template:
+    src: templates/dma/auth.conf.j2
+    dest: /etc/dma/auth.conf
+    group: mail
+    mode: 0640
+
+- name: Installing mailer.conf
+  copy:
+    src: /usr/share/examples/dma/mailer.conf
+    dest: /etc/mail
+
+- name: Enablng dma in rc.conf
+  command: sysrc {{ item }}
+  changed_when: false
+  with_items:
+    - sendmail_enable="NONE"
+    - dma_flushq_enable="YES"
+
+- name: Disabling sendmail in periodic.conf
+  command: sysrc -f /etc/periodic.conf {{ item }}
+  changed_when: false
+  with_items:
+    - daily_clean_hoststat_enable="NO"
+    - daily_status_mail_rejects_enable="NO"
+    - daily_status_include_submit_mailq="NO"
+    - daily_submit_queuerun="NO"

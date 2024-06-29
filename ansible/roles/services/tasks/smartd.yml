@@ -1,0 +1,20 @@
+- name: Installing smartmontools
+  command: pkg install -y smartmontools
+  changed_when: false
+
+- name: Installing smartd.conf 
+  copy:
+    src: files/smartd.conf
+    dest: /usr/local/etc
+
+- name: Creating /var/db/smartd
+  file:
+    path: /var/db/smartd
+    recurse: yes
+
+- name: Enabling smartd in rc.conf
+  command: sysrc {{ item }}
+  changed_when: false
+  with_items:
+    - smartd_enable="YES"
+    - smartd_flags="-s /var/db/smartd/"

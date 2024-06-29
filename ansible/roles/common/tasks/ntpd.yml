@@ -1,0 +1,10 @@
+- name: Installing ntp.conf
+  copy:
+    src: files/ntp.conf
+    dest: /etc
+
+- name: Enabling ntpd in rc.conf
+  shell: |
+    sysrc ntpd_enable="YES"
+    sysrc ntpd_sync_on_start="YES"
+  changed_when: false

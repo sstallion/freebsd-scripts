@@ -1,0 +1,20 @@
+- name: Installing dynamic_motd
+  command: pkg install -y dynamic_motd
+  changed_when: false
+
+- name: Installing rc.motd
+  copy:
+    src: '{{ item }}'
+    dest: /usr/local/etc
+  with_items:
+    - files/motd.subr
+    - files/rc.motd
+
+- name: Enabling dynamic_motd in rc.conf
+  shell: |
+    sysrc update_motd="NO"
+    sysrc dynamic_motd="YES"
+    sysrc motd_sitename="quuxotic.net"
+  changed_when: false
+
+# TODO: make a variable for motd_sitename

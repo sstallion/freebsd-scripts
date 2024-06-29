@@ -1,0 +1,33 @@
+- name: Reading Secrets
+  include_vars:
+    file: vars/secrets.yml
+
+- name: Including Tasks
+  include_role:
+    name: common
+    tasks_from: '{{ tasks_from }}'
+  loop:
+    - base
+    - certs
+    - auth
+    - sort
+    # - mail
+    # - motd
+    - smartd
+    - sshd
+    - syslogd
+  loop_control:
+    loop_var: tasks_from
+
+- name: Including Services
+  include_role:
+    name: services
+    tasks_from: '{{ service }}'
+  loop:
+    - dma
+    - dynamic_motd
+    - ntpd
+  loop_control:
+    loop_var: service
+
+# todo move aliases to base
