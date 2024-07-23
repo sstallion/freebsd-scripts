@@ -1,0 +1,7 @@
+- name: Adding freebsd-update to crontab
+  ansible.builtin.lineinfile:
+    path: /etc/crontab
+    line: '{{ item }}'
+  with_items:
+    - '# Check for updates daily.'
+    - "@daily\t\t\t\t\troot\tfreebsd-update cron" # noqa: no-tabs

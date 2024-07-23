@@ -1,0 +1,43 @@
+- name: Installing dma.conf
+  ansible.builtin.template:
+    src: templates/dma/dma.conf.j2
+    dest: /etc/dma/dma.conf
+    mode: '0644'
+
+- name: Installing auth.conf
+  ansible.builtin.template:
+    src: templates/dma/auth.conf.j2
+    dest: /etc/dma/auth.conf
+    group: mail
+    mode: '0640'
+
+- name: Installing mailer.conf
+  ansible.builtin.copy:
+    src: /usr/share/examples/dma/mailer.conf
+    dest: /etc/mail/
+    mode: '0644'
+    remote_src: true
+
+- name: Configuring dma in rc.conf
+  community.general.sysrc:
+    name: '{{ item.name }}'
+    value: '{{ item.value }}'
+  with_items:
+    - { name: dma_flushq_enable, value: 'YES' }
+    - { name: sendmail_enable, value: 'NONE' }
+  notify:
+    - sort rc.conf
+    - stop sendmail
+
+- name: Disabling sendmail in periodic.conf
+  community.general.sysrc:
+    name: '{{ item.name }}'
+    value: '{{ item.value }}'
+    path: /etc/periodic.conf
+  with_items:
+    - { name: daily_clean_hoststat_enable, value: 'NO' }
+    - { name: daily_status_mail_rejects_enable, value: 'NO' }
+    - { name: daily_status_include_submit_mailq, value: 'NO' }
+    - { name: daily_submit_queuerun, value: 'NO' }
+  notify:
+    - sort periodic.conf

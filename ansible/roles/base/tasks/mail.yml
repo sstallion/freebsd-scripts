@@ -1,0 +1,8 @@
+- name: Updating aliases
+  ansible.builtin.replace:
+    path: /etc/mail/aliases
+    regexp: '^#\s?(root:\s).*$'
+    replace: '\g<1>{{ root_alias }}'
+  when: root_alias is defined
+  notify:
+    - rebuild aliases

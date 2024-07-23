@@ -1,0 +1,6 @@
+- name: Securing syslogd in rc.conf
+  community.general.sysrc:
+    { name: syslogd_flags, value: -ss }
+  notify:
+    - sort rc.conf
+    - restart syslogd

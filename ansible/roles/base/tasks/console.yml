@@ -1,0 +1,30 @@
+- name: Creating console.log
+  ansible.builtin.copy:
+    content: ''
+    dest: /var/log/console.log
+    force: false
+    mode: '0600'
+
+- name: Enabling console.log in syslog.conf
+  ansible.builtin.replace:
+    path: /etc/syslog.conf
+    regexp: '^#\s?(console\.info.*/var/log/console.log)$'
+    replace: '\g<1>'
+  notify:
+    - restart syslogd
+
+- name: Configuring System Console in rc.conf
+  community.general.sysrc:
+    name: '{{ item.name }}'
+    value: '{{ item.value }}'
+  with_items:
+    - { name: blanktime, value: 'NO' }
+    - { name: moused_nondefault_enable, value: 'NO' }
+  notify:
+    - sort rc.conf
+
+- name: Disabling Virtual Terminals
+  ansible.builtin.replace:
+    path: /etc/ttys
+    regexp: '^(ttyv[1-8]\s.*)onifexists(.*)$'
+    replace: '\g<1>off\g<2>'

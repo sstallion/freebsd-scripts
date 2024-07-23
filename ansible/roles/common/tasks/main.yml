@@ -1,0 +1,21 @@
+- name: Checking for Disks
+  ansible.builtin.find:
+    patterns:
+      - '^a?da\d+$'
+      - '^nvme\d+$'
+    paths: /dev/
+    file_type: any
+    use_regex: true
+  register: find_disks
+
+- name: Checking for ZFS
+  ansible.builtin.command: kldstat -q -m zfs
+  register: kldstat_zfs
+  changed_when: false
+  failed_when: false
+
+- name: Setting Facts
+  ansible.builtin.set_fact:
+    disks: '{{ find_disks.files }}'
+    has_zfs: '{{ kldstat_zfs.rc == 0 }}'
+    cacheable: true

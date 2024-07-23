@@ -1,0 +1,22 @@
+- name: Configuring ZFS
+  when: has_zfs
+  block:
+    - name: Disabling BEs in freebsd-update.conf
+      ansible.builtin.replace:
+        path: /etc/freebsd-update.conf
+        regexp: '^#\s?(CreateBootEnv\s)yes$'
+        replace: '\g<1>no'
+
+    - name: Configuring ZFS in periodic.conf
+      community.general.sysrc:
+        name: '{{ item.name }}'
+        value: '{{ item.value }}'
+        path: /etc/periodic.conf
+      with_items:
+        - { name: daily_backup_zfs_enable, value: 'YES' }
+        - { name: daily_backup_zfs_props_enable, value: 'YES' }
+        - { name: daily_status_zfs_enable, value: 'YES' }
+        - { name: daily_scrub_zfs_enable, value: 'YES' }
+        - { name: daily_scrub_zfs_default_threshold, value: '30' }
+      notify:
+        - sort periodic.conf

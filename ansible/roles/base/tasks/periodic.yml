@@ -1,0 +1,30 @@
+- name: Linking Periodic Scripts
+  ansible.builtin.file:
+    src: '{{ item.src }}'
+    dest: '/usr/local/etc/periodic/{{ item.src | relpath(item.root) }}'
+    state: link
+  with_community.general.filetree: /var/scripts/periodic/
+  when: item.state == 'file'
+
+- name: Updating periodic.conf
+  community.general.sysrc:
+    name: '{{ item.name }}'
+    value: '{{ item.value }}'
+    path: /etc/periodic.conf
+  with_items:
+    - { name: daily_show_success, value: 'NO' }
+    - { name: daily_show_info, value: 'NO' }
+    - { name: daily_status_security_inline, value: 'YES' }
+    - { name: daily_pkg_update_enable, value: 'YES' }
+    - { name: daily_ports_update_enable, value: 'YES' }
+    - { name: daily_scripts_update_enable, value: 'YES' }
+    - { name: weekly_show_success, value: 'NO' }
+    - { name: weekly_show_info, value: 'NO' }
+    - { name: weekly_status_security_inline, value: 'YES' }
+    - { name: monthly_show_success, value: 'NO' }
+    - { name: monthly_show_info, value: 'NO' }
+    - { name: monthly_status_security_inline, value: 'YES' }
+    - { name: security_show_success, value: 'NO' }
+    - { name: security_show_info, value: 'NO' }
+  notify:
+    - sort periodic.conf
