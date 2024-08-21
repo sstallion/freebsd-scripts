@@ -1,0 +1,42 @@
+- name: Installing uclcmd
+  community.general.pkgng:
+    name: uclcmd
+    state: present
+
+- name: Creating Temporary File
+  ansible.builtin.tempfile:
+    state: file
+  register: pkg_tempfile
+  changed_when: false
+
+- name: Copying pkg.conf.merge
+  ansible.builtin.copy:
+    src: files/pkg.conf.merge
+    dest: /tmp/
+    mode: '0644'
+  changed_when: false
+
+- name: Merging pkg.conf
+  ansible.builtin.shell: |
+    uclcmd merge -I -f /usr/local/etc/pkg.conf \
+                 -i /tmp/pkg.conf.merge -o {{ pkg_tempfile.path }} .
+  changed_when: false
+
+- name: Updating pkg.conf
+  ansible.builtin.copy:
+    src: '{{ pkg_tempfile.path }}'
+    dest: /usr/local/etc/pkg.conf
+    mode: '0644'
+    remote_src: true
+
+- name: Removing pkg.conf.merge
+  ansible.builtin.file:
+    path: /tmp/pkg.conf.merge
+    state: absent
+  changed_when: false
+
+- name: Removing Temporary File
+  ansible.builtin.file:
+    path: '{{ pkg_tempfile.path }}'
+    state: absent
+  changed_when: false

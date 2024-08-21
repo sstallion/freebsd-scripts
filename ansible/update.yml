@@ -1,0 +1,78 @@
+- name: Updating Host
+  hosts: all
+  vars:
+    ports_repo: https://git.FreeBSD.org/ports.git
+    uefi_loader:
+      amd64: bootx64.efi
+      arm64: bootaa64.efi
+  tasks:
+    - name: Updating Packages
+      community.general.pkgng:
+        name: '*'
+        state: latest
+        autoremove: true
+
+    - name: Updating Ports
+      notify:
+        - make index
+      block:
+        - name: Checking for INDEX
+          ansible.builtin.find:
+            path: /usr/ports/
+            patterns: INDEX-*
+          register: ports_index
+          changed_when: false
+
+        - name: Checking Current Branch
+          ansible.builtin.command: git -C /usr/ports rev-parse --abbrev-ref HEAD # noqa: command-instead-of-module
+          register: ports_branch
+          changed_when: false
+
+        - name: Checking Latest Branch
+          ansible.builtin.shell: |
+            set -o pipefail
+            git ls-remote --heads --sort=-v:refname {{ ports_repo }} "20[0-9][0-9]Q[1-4]" | head -n 1 | cut -f 3 -d /
+          register: ports_latest
+          changed_when: false
+
+        - name: Pulling Changes
+          ansible.builtin.command: git -C /usr/ports pull --ff-only # noqa: command-instead-of-module
+          register: ports_pull
+          changed_when: "'Already up to date.' not in ports_pull.stdout"
+
+        - name: Switching to Latest Branch
+          ansible.builtin.shell: |
+            set -o errexit
+            git -C /usr/ports fetch --depth 1 origin {{ ports_latest.stdout }}:{{ ports_latest.stdout }}
+            git -C /usr/ports switch {{ ports_latest.stdout }}
+          changed_when: true
+          when: ports_branch.stdout != ports_latest.stdout
+
+    - name: Updating FreeBSD
+      ansible.builtin.command: freebsd-update --not-running-from-cron fetch install
+      register: freebsd_update
+      changed_when: "'No updates are available to install.' not in freebsd_update.stdout_lines"
+      notify:
+        - reboot
+  handlers:
+    - name: Updating INDEX
+      ansible.builtin.command: make -C /usr/ports index
+      changed_when: true
+      when: ports_index.files | length > 0
+      listen: make index
+
+    - name: Updating Boot Loader
+      ansible.builtin.copy:
+        src: /boot/loader.efi
+        dest: '/boot/efi/{{ item }}'
+        mode: preserve # msdosfs
+        remote_src: true
+      with_items:
+        - efi/boot/{{ uefi_loader[ansible_architecture] }}
+        - efi/freebsd/loader.efi
+      when: "'/boot/loader.efi' in freebsd_update.stdout_lines"
+      listen: reboot
+
+    - name: Rebooting Host
+      ansible.builtin.reboot:
+      listen: reboot

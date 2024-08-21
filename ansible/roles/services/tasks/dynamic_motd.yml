@@ -1,0 +1,35 @@
+- name: Installing dynamic_motd
+  community.general.pkgng:
+    name: [dynamic_motd, figlet]
+    state: present
+
+- name: Configuring dynamic_motd
+  notify:
+    - restart dynamic_motd
+  block:
+    - name: Installing rc.motd
+      ansible.builtin.copy:
+        src: '{{ item }}'
+        dest: /usr/local/etc/
+        mode: '0644'
+      with_items:
+        - files/motd.subr
+        - files/rc.motd
+
+    - name: Configuring dynamic_motd in rc.conf
+      notify:
+        - sort rc.conf
+      block:
+        - name: Setting Site Name in rc.conf
+          community.general.sysrc:
+            name: motd_sitename
+            value: '{{ motd_sitename }}'
+          when: motd_sitename is defined
+
+        - name: Enabling dynamic_motd in rc.conf
+          community.general.sysrc:
+            name: '{{ item.name }}'
+            value: '{{ item.value }}'
+          with_items:
+            - { name: dynamic_motd, value: 'YES' }
+            - { name: update_motd, value: 'NO' }

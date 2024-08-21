@@ -1,0 +1,402 @@
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Copyright (c) 2024 Steven Stallion <sstallion@gmail.com>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+export DISTRIBUTIONS="kernel.txz base.txz src.txz"
+
+################################################################################
+# The following configuration hijacks the scripted installation process so we
+# have more control over creating ZFS datasets. This is needed to install keys
+# on the BE prior to creating encrypted datasets in addition to applying other
+# opinionated changes. The number of dialogs presented is also greatly
+# reduced, making this a semi-interactive alternative to scripting.
+#
+# Where possible, existing 'zfsboot' variables have been reused and/or
+# adjusted to support higher-end SSDs by default. The following changes have
+# been made to the original behavior:
+#
+# - A dialog is presented to choose ZFS boot disks prior to automatic
+#   partitioning rather than showing the partition editor
+# - Selecting multiple ZFS boot disks results in a mirrored configuration,
+#   including UEFI ESPs using gmirror(8)
+# - GPT label indices are appended only when multiple disks are selected
+# - UEFI ESP partition size is now configurable
+# - Swap partitions are interleaved across multiple disks and sized according
+#   to tuning(7)
+# - The primary boot environment is named for the current release (uname -r)
+#   instead of 'default'
+# - autotrim is enabled on the boot pool by default
+# - Home directories are placed under /home to align with 14.0-RELEASE
+# - /var/backups has been promoted to a dataset to enable offsite backup using
+#   zfs-send(8) / zfs-receive(8)
+# - ZFS encryption is enabled by default on the zroot/home and zroot/var/backups
+#   datasets to support offsite backups to untrusted systems (eg. rsync.net)
+# - The zroot/tmp dataset is omitted in favor of tmpfs(5)
+# - pkg(7) is bootstrapped and the most recent quarterly branch of ports(7)
+#   is installed using Git
+# - The optional setup script is now a standalone script located at
+#   /etc/installerscript rather than being embedded within this file
+################################################################################
+
+############################################################ INCLUDES
+
+BSDCFG_SHARE="/usr/share/bsdconfig"
+. $BSDCFG_SHARE/common.subr || exit 1
+f_dprintf "%s: loading includes..." "$0"
+f_include $BSDCFG_SHARE/device.subr
+f_include $BSDCFG_SHARE/dialog.subr
+f_include $BSDCFG_SHARE/variable.subr
+
+############################################################ CONFIGURATION
+
+#
+# Post-install script to run under chroot(8)
+#
+: ${INSTALLER_SCRIPT:=/etc/installerscript}
+
+#
+# Small partition alignment (UEFI ESP)
+# NOTE: Value passed to gpart(8); which supports SI unit suffixes.
+#
+: ${ZFSBOOT_ALIGN_SMALL:=4k}
+
+#
+# Big partition alignment (swap and ZFS)
+# NOTE: Value passed to gpart(8); which supports SI unit suffixes.
+#
+: ${ZFSBOOT_ALIGN_BIG:=1m}
+
+#
+# How much space to allocate for the UEFI ESP
+# NOTE: Smallest possible FAT32 partition on 4k native disks is 260m.
+#
+: ${ZFSBOOT_ESP_SIZE:=260m}
+
+#
+# Default name of the boot-pool
+#
+: ${ZFSBOOT_POOL_NAME:=zroot}
+
+#
+# Default options to use when creating zroot pool
+#
+: ${ZFSBOOT_POOL_CREATE_OPTIONS:=-o ashift=12 -o autotrim=on -O compression=lz4 -O atime=off}
+
+#
+# Default name for the boot environment parent dataset
+#
+: ${ZFSBOOT_BEROOT_NAME:=ROOT}
+
+#
+# Default name for the primary boot environment
+#
+: ${ZFSBOOT_BOOTFS_NAME:=$(uname -r)}
+
+#
+# Default Virtual Device (vdev) type to create
+#
+: ${ZFSBOOT_VDEV_TYPE:=}
+
+#
+# Default disks to use (always empty unless being scripted)
+#
+: ${ZFSBOOT_DISKS:=}
+
+#
+# How much swap to put on each block device in the boot zpool
+# NOTE: Value passed to gpart(8); which supports SI unit suffixes.
+#
+: ${ZFSBOOT_SWAP_SIZE:=}
+
+#
+# Default location for ZFS encryption keys
+#
+: ${ZFSBOOT_KEYLOCATION:=file:///etc/zfs/$ZFSBOOT_POOL_NAME.key}
+
+#
+# Default format for ZFS encryption keys
+#
+: ${ZFSBOOT_KEYFORMAT:=hex}
+
+#
+# Default options to use when creating encrypted datasets
+#
+: ${ZFSBOOT_ENCRYPTION_OPTIONS:=-o encryption=aes-256-gcm -o keylocation=$ZFSBOOT_KEYLOCATION -o keyformat=$ZFSBOOT_KEYFORMAT}
+
+############################################################ GLOBALS
+
+msg_freebsd_installer="FreeBSD Installer"
+msg_zfsboot_disks="Choose ZFS Boot Disks"
+msg_zfsboot_disks_desc="One or more disks must be selected; multiple disks will be mirrored with swap interleaved."
+msg_zfsboot_disks_error="One or more disks must be selected"
+
+############################################################ FUNCTIONS
+
+swapsize()
+{
+	local swapsize ndisks
+	swapsize=$(( $(sysctl -n hw.physmem) ))
+	swapsize=$(( $swapsize + $(( (512 * 1024 * 1024) - 1 )) ))
+	swapsize=$(( $swapsize / 1024 / 1024 / 1024 )) # B -> GB
+	if [ $swapsize -le 4 ]; then
+		swapsize=$(( $swapsize * 2 ))
+	fi
+
+	f_count ndisks $ZFSBOOT_DISKS
+	swapsize=$(( $swapsize / $ndisks ))
+
+	[ $swapsize -gt 64 ] && swapsize=64
+	echo "$swapsize"g
+}
+
+zfs_find_disks()
+{
+	local disks disk desc devname name disk_checklist
+	f_device_find "" $DEVICE_TYPE_DISK disks
+	f_device_sort_by name disks disks
+	for disk in $disks; do
+		$disk get name name
+		$disk get desc desc
+		f_mounted -b /dev/$name && continue
+		f_shell_escape "$desc" desc
+		disk_checklist="$disk_checklist $name '$desc' off"
+	done
+
+	ZFSBOOT_DISKS=$(eval $DIALOG --title \"\$msg_zfsboot_disks\" \
+				      --backtitle \"\$msg_freebsd_installer\" \
+				      --nocancel \
+				      --separate-output \
+				      --checklist \"\$msg_zfsboot_disks_desc\" \
+				      0 0 0 $disk_checklist \
+			2>&1 >&$DIALOG_TERMINAL_PASSTHRU_FD)
+	if [ -z "$ZFSBOOT_DISKS" ]; then
+		f_show_err "$msg_zfsboot_disks_error"
+		return $FAILURE
+	fi
+	return $SUCCESS
+}
+
+zfs_create_diskpart()
+{
+	local index ndisks
+	f_count ndisks $ZFSBOOT_DISKS
+	if [ $ndisks -gt 1 ]; then
+		index=0 # append index only if needed
+		: ${ZFSBOOT_VDEV_TYPE:=mirror}
+	fi
+
+	# Adjust swap according to tuning(7)
+	: ${ZFSBOOT_SWAP_SIZE:=$(swapsize)}
+
+	# Stop and clear metadata before gpart destroy
+	kldload -n geom_mirror
+	if [ -c /dev/mirror/efi ]; then
+		gmirror destroy -f efi
+	fi
+
+	for disk in $ZFSBOOT_DISKS; do
+		gpart destroy -F $disk >/dev/null 2>&1 || true
+		zpool labelclear -f $disk >/dev/null 2>&1 || true
+
+		gpart create -s gpt $disk
+		gpart add -t efi -a $ZFSBOOT_ALIGN_SMALL -s $ZFSBOOT_ESP_SIZE -l efi$index $disk
+		gpart add -t freebsd-swap -a $ZFSBOOT_ALIGN_BIG -s $ZFSBOOT_SWAP_SIZE -l swap$index $disk
+		gpart add -t freebsd-zfs -a $ZFSBOOT_ALIGN_BIG -l $ZFSBOOT_POOL_NAME$index $disk
+
+		[ -n "$index" ] && index=$(( $index + 1 ))
+	done
+	return $SUCCESS
+}
+
+zfs_create_pool()
+{
+	zpool create -f $ZFSBOOT_POOL_CREATE_OPTIONS -O canmount=noauto -m none -R $BSDINSTALL_CHROOT \
+		     $ZFSBOOT_POOL_NAME $ZFSBOOT_VDEV_TYPE /dev/gpt/$ZFSBOOT_POOL_NAME*
+
+	echo "zfs_enable=\"YES\"" >>$BSDINSTALL_TMPETC/rc.conf.zfs
+	echo "zfskeys_enable=\"YES\"" >>$BSDINSTALL_TMPETC/rc.conf.zfs
+}
+
+zfs_create_boot()
+{
+	# Boot Environment [BE] root and default boot dataset
+	zfs create -o mountpoint=none $ZFSBOOT_POOL_NAME/$ZFSBOOT_BEROOT_NAME
+	zfs create -o mountpoint=/ -o canmount=noauto $ZFSBOOT_POOL_NAME/$ZFSBOOT_BEROOT_NAME/$ZFSBOOT_BOOTFS_NAME
+	zpool set bootfs=$ZFSBOOT_POOL_NAME/$ZFSBOOT_BEROOT_NAME/$ZFSBOOT_BOOTFS_NAME $ZFSBOOT_POOL_NAME
+
+	# Mount default boot dataset (canmount=noauto)
+	zfs mount $ZFSBOOT_POOL_NAME/$ZFSBOOT_BEROOT_NAME/$ZFSBOOT_BOOTFS_NAME
+}
+
+zfs_create_key()
+{
+	local file=$(echo $ZFSBOOT_KEYLOCATION | sed -e "s|^file://||")
+	local dirname=$(dirname $file)
+
+	# Stack $BSDINSTALL_CHROOT so keylocation agrees:
+	mkdir -p $BSDINSTALL_CHROOT$dirname
+	mount -t unionfs $BSDINSTALL_CHROOT$dirname $dirname
+
+	if [ $ZFSBOOT_KEYFORMAT = "hex" ]; then
+		openssl rand -out $file -hex 32
+	else # $ZFSBOOT_KEYFORMAT = "raw"
+		dd if=/dev/urandom of=$file bs=32 count=1
+	fi
+	chmod 400 $file
+}
+
+zfs_create_datasets()
+{
+	# Home directories separated so they are common to all BEs
+	zfs create -o mountpoint=/home $ZFSBOOT_ENCRYPTION_OPTIONS $ZFSBOOT_POOL_NAME/home
+
+	# Compress /tmp, allow exec but not setuid
+	# zfs create -o mountpoint=/tmp -o setuid=off $ZFSBOOT_POOL_NAME/tmp
+	install -d -m 1777 $BSDINSTALL_CHROOT/tmp # prefer tmpfs
+
+	# Don't mount /usr so that 'base' files go to the BEROOT
+	zfs create -o mountpoint=/usr -o canmount=off $ZFSBOOT_POOL_NAME/usr
+
+	# Ports tree
+	zfs create -o setuid=off $ZFSBOOT_POOL_NAME/usr/ports
+
+	# Source tree (compressed)
+	zfs create $ZFSBOOT_POOL_NAME/usr/src
+
+	# Create /var and friends
+	zfs create -o mountpoint=/var -o canmount=off $ZFSBOOT_POOL_NAME/var
+	zfs create -o exec=off -o setuid=off $ZFSBOOT_POOL_NAME/var/audit
+	zfs create $ZFSBOOT_ENCRYPTION_OPTIONS $ZFSBOOT_POOL_NAME/var/backups
+	zfs create -o exec=off -o setuid=off $ZFSBOOT_POOL_NAME/var/crash
+	zfs create -o exec=off -o setuid=off $ZFSBOOT_POOL_NAME/var/log
+	zfs create -o atime=on $ZFSBOOT_POOL_NAME/var/mail
+	zfs create -o setuid=off $ZFSBOOT_POOL_NAME/var/tmp
+}
+
+zfs_create_efiboot()
+{
+	local ndisks
+	f_count ndisks $ZFSBOOT_DISKS
+	if [ $ndisks -eq 1 ]; then
+		ZFSBOOT_EFIBOOT_DISK=/dev/gpt/efi
+	else
+		echo "geom_mirror_load=\"YES\"" >>$BSDINSTALL_TMPBOOT/loader.conf.gmirror
+		gmirror label efi /dev/gpt/efi*
+		ZFSBOOT_EFIBOOT_DISK=/dev/mirror/efi
+	fi
+	newfs_msdos -F 32 -c 1 $ZFSBOOT_EFIBOOT_DISK
+}
+
+zfs_create_fstab()
+{
+	printf "# Device\tMountpoint\tFStype\tOptions\t\t\tDump\tPass#\n" >>$PATH_FSTAB
+	printf "%s\t/boot/efi\tmsdosfs\trw\t\t\t2\t2\n" $ZFSBOOT_EFIBOOT_DISK >>$PATH_FSTAB
+	for swap in /dev/gpt/swap*; do
+		printf "%s\tnone\t\tswap\tsw\t\t\t0\t0\n" $swap >>$PATH_FSTAB
+	done
+	printf "tmpfs\t\t/tmp\t\ttmpfs\trw,nosuid,mode=1777\t0\t0\n" >>$PATH_FSTAB
+}
+
+zfs_umount()
+{
+	local file=$(echo $ZFSBOOT_KEYLOCATION | sed -e "s|^file://||")
+	local dirname=$(dirname $file)
+
+	# Unstack $BSDINSTALL_CHROOT so we can export cleanly
+	umount $dirname
+	zpool export $ZFSBOOT_POOL_NAME
+}
+
+############################################################ MAIN
+
+# Set up scripting environment
+export HOME=/root
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+
+# Configure current system for network access
+export BSDINSTALL_CONFIGCURRENT=1
+
+# Make partitions
+rm -f $PATH_FSTAB
+touch $PATH_FSTAB
+
+zfs_find_disks
+zfs_create_diskpart
+zfs_create_pool
+zfs_create_boot
+zfs_create_key
+zfs_create_datasets
+zfs_create_efiboot
+zfs_create_fstab
+
+bsdinstall mount
+
+# Unpack distributions
+bsdinstall checksum
+bsdinstall distextract
+
+# Configure bootloader
+bsdinstall bootconfig
+
+# Configure system
+bsdinstall hostname
+bsdinstall netconfig
+bsdinstall time
+bsdinstall rootpass
+
+# Finalize install
+bsdinstall config
+
+# Bootstrap pkg(7) and install most recent quarterly branch of ports(7)
+chroot $BSDINSTALL_CHROOT /bin/sh 2>&1 <<-'EOF'
+	pkg bootstrap -y
+	pkg update
+	pkg install -y git
+
+	ports_repo="https://git.FreeBSD.org/ports.git"
+	ports_branch=$(git ls-remote --heads --sort=-v:refname $ports_repo "20[0-9][0-9]Q[1-4]" | head -n 1 | cut -f 3 -d /)
+	git clone -b $ports_branch --depth 1 $ports_repo /usr/ports
+EOF
+
+# Run post-install script
+if [ -f "$INSTALLER_SCRIPT" ]; then
+	cp $INSTALLER_SCRIPT $BSDINSTALL_CHROOT/tmp/installerscript
+	chmod +x $BSDINSTALL_CHROOT/tmp/installerscript
+	chroot $BSDINSTALL_CHROOT /tmp/installerscript $@ 2>&1
+	rm $BSDINSTALL_CHROOT/tmp/installerscript
+fi
+
+bsdinstall entropy
+bsdinstall umount
+
+zfs_umount
+
+f_dprintf "Installation Completed at %s" "$(date)"
+
+trap - EXIT
+exit $SUCCESS
+
+################################################################################
+# END
+################################################################################

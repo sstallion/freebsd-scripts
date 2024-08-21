@@ -1,0 +1,16 @@
+- name: Enabling devd.log in syslog.conf
+  ansible.builtin.replace:
+    path: /etc/syslog.conf
+    regexp: '^#\s?({{ item }})$'
+    replace: '\g<1>'
+  with_items:
+    - '!devd'
+    - '\*\.>=notice.*/var/log/devd\.log'
+  notify:
+    - restart syslogd
+
+- name: Configuring Crash Dumps in rc.conf
+  community.general.sysrc:
+    { name: dumpdev, value: AUTO }
+  notify:
+    - sort rc.conf

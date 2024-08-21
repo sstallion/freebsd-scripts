@@ -1,0 +1,41 @@
+- name: Restarting dynamic_motd
+  ansible.builtin.service:
+    name: dynamic_motd
+    state: restarted
+  when: not skip_services | default(false)
+  listen: restart dynamic_motd
+
+- name: Restarting ntpd
+  ansible.builtin.service:
+    name: ntpd
+    state: restarted
+  when: not skip_services | default(false)
+  listen: restart ntpd
+
+- name: Restarting smartd
+  ansible.builtin.service:
+    name: smartd
+    state: restarted
+  when: not skip_services | default(false)
+  listen: restart smartd
+
+- name: Restarting sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+  when: not skip_services | default(false)
+  listen: restart sshd
+
+- name: Restarting syslogd
+  ansible.builtin.service:
+    name: syslogd
+    state: restarted
+  when: not skip_services | default(false)
+  listen: restart syslogd
+
+- name: Stopping sendmail
+  ansible.builtin.service:
+    name: sendmail
+    state: stopped
+  when: not skip_services | default(false)
+  listen: stop sendmail

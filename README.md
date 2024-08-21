@@ -17,10 +17,10 @@ To install on a new system, issue:
 
 ### Updates
 
-Daily updates can be enabled by adding `daily_scripts_update_enable="YES"` to
-`/etc/periodic.conf` or `/etc/periodic.conf.local` and issuing:
+Daily updates can be enabled by issuing:
 ```
-# ln -s /var/scripts/periodic/999.scripts-update /usr/local/etc/periodic/daily
+# ln -s /var/scripts/periodic/900.scripts-update /usr/local/etc/periodic/daily
+# sysrc -f /etc/periodic.conf daily_scripts_update_enable="YES"
 ```
 
 ## Contributing

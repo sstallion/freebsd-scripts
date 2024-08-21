@@ -1,0 +1,59 @@
+- name: Configuring smartd
+  notify:
+    - restart smartd
+  when: disks | length > 0
+  block:
+    - name: Installing smartmontools
+      community.general.pkgng:
+        name: smartmontools
+        state: present
+
+    - name: Checking /var/db/smartd
+      ansible.builtin.stat:
+        path: /var/db/smartd/
+      register: smartd_db_dir
+
+    - name: Creating /var/db/smartd
+      ansible.builtin.file:
+        path: /var/db/smartd/
+        mode: '0755'
+        state: directory
+      when: not smartd_db_dir.stat.exists
+
+    - name: Installing smartd.conf in newsyslog.conf.d
+      ansible.builtin.copy:
+        src: files/newsyslog.conf.d/smartd.conf
+        dest: /usr/local/etc/newsyslog.conf.d/
+        mode: '0644'
+      notify:
+        - create logs
+
+    - name: Installing smartd.conf in syslog.d
+      ansible.builtin.copy:
+        src: files/syslog.d/smartd.conf
+        dest: /usr/local/etc/syslog.d/
+        mode: '0644'
+      notify:
+        - restart syslogd
+
+    - name: Updating syslog.conf
+      ansible.builtin.lineinfile:
+        path: /etc/syslog.conf
+        line: '!-smartd'
+        insertbefore: '^daemon\.info'
+
+    - name: Installing smartd.conf
+      ansible.builtin.copy:
+        src: files/smartd.conf
+        dest: /usr/local/etc/
+        mode: '0644'
+
+    - name: Enabling smartd in rc.conf
+      community.general.sysrc:
+        name: '{{ item.name }}'
+        value: '{{ item.value }}'
+      with_items:
+        - { name: smartd_enable, value: 'YES' }
+        - { name: smartd_flags, value: -s /var/db/smartd/ }
+      notify:
+        - sort rc.conf

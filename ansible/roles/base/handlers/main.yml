@@ -1,0 +1,9 @@
+- name: Rebuilding aliases.db
+  ansible.builtin.command: newaliases
+  changed_when: true
+  listen: rebuild aliases
+
+- name: Rehashing Certificates
+  ansible.builtin.command: certctl rehash
+  changed_when: true
+  listen: rehash certs

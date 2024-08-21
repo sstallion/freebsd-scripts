@@ -1,0 +1,42 @@
+- name: Creating Logs
+  ansible.builtin.command: newsyslog -C
+  changed_when: true
+  listen: create logs
+
+- name: Sorting passwd
+  ansible.builtin.include_tasks: sort.yml
+  vars:
+    sort_extra_args: '-n -k 3 -t :'
+    sort_path: /etc/master.passwd
+    sort_mode: '0600'
+    sort_post: pwd_mkdb -p /etc/master.passwd
+  listen: sort passwd
+
+- name: Sorting group
+  ansible.builtin.include_tasks: sort.yml
+  vars:
+    sort_extra_args: '-n -k 3 -t :'
+    sort_path: /etc/group
+    sort_mode: '0644'
+  listen: sort group
+
+- name: Sorting loader.conf
+  ansible.builtin.include_tasks: sort.yml
+  vars:
+    sort_path: /boot/loader.conf
+    sort_mode: '0644'
+  listen: sort loader.conf
+
+- name: Sorting periodic.conf
+  ansible.builtin.include_tasks: sort.yml
+  vars:
+    sort_path: /etc/periodic.conf
+    sort_mode: '0644'
+  listen: sort periodic.conf
+
+- name: Sorting rc.conf
+  ansible.builtin.include_tasks: sort.yml
+  vars:
+    sort_path: /etc/rc.conf
+    sort_mode: '0644'
+  listen: sort rc.conf

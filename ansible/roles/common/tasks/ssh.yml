@@ -1,0 +1,29 @@
+- name: Checking SSH Directory
+  ansible.builtin.stat:
+    path: ~/.ssh/
+  register: ssh_dir
+
+- name: Creating SSH Directory
+  ansible.builtin.file:
+    path: ~/.ssh/
+    state: directory
+    mode: '0600'
+  when: not ssh_dir.stat.exists
+
+- name: Generating SSH Key
+  community.crypto.openssh_keypair:
+    state: present
+    type: '{{ ssh_type }}'
+    size: '{{ ssh_size | default(0) }}'
+    path: '~/.ssh/id_{{ ssh_type }}'
+    comment: '{{ ansible_user_id }}@{{ ansible_fqdn }}'
+
+- name: Updating Authorized Keys
+  ansible.builtin.lineinfile:
+    path: ~/.ssh/authorized_keys
+    line: '{{ item }}'
+    create: true
+    mode: '0600'
+  with_items:
+    '{{ ssh_authorized_keys }}'
+  when: ssh_authorized_keys is defined

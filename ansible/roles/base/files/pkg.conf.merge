@@ -1,0 +1,4 @@
+alias {
+    outdated = "version -l\<";
+    updated = "version -l\>";
+}

@@ -1,0 +1,14 @@
+- name: Sorting Configuration
+  hosts: all
+  roles:
+    - common
+  tasks:
+    - name: Notifying Handlers
+      ansible.builtin.command: 'true'
+      changed_when: true
+      notify:
+        - sort passwd
+        - sort group
+        - sort loader.conf
+        - sort periodic.conf
+        - sort rc.conf

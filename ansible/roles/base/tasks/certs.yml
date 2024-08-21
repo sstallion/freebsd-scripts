@@ -1,0 +1,7 @@
+- name: Installing Certificates
+  ansible.builtin.copy:
+    src: files/certs/
+    dest: /usr/local/share/certs/
+    mode: '0644'
+  notify:
+    - rehash certs

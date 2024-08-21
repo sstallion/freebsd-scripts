@@ -1,0 +1,50 @@
+- name: Installing oath-toolkit
+  community.general.pkgng:
+    name: oath-toolkit
+    state: present
+
+- name: Setting Facts for OATH
+  ansible.builtin.set_fact:
+    oath_module_path: /usr/local/lib/security/pam_oath.so
+    oath_usersfile: /usr/local/etc/users.oath
+    cacheable: true
+
+- name: Creating users.oath
+  ansible.builtin.copy:
+    content: ''
+    dest: '{{ oath_usersfile }}'
+    force: false
+    mode: '0600'
+
+- name: Adding pam_oath to sshd
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sshd
+    line: "auth\t\trequired\t{{ oath_module_path }}\tusersfile={{ oath_usersfile }}" # noqa: no-tabs
+    insertafter: '^auth.*pam_unix\.so'
+
+- name: Configuring sshd
+  notify:
+    - restart sshd
+  block:
+    - name: Updating sshd_config
+      ansible.builtin.replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^#\s?(PermitRootLogin\s)no'
+        replace: '\g<1>prohibit-password'
+
+    - name: Removing ECDSA Host Keys
+      ansible.builtin.file:
+        path: '{{ item }}'
+        state: absent
+      with_fileglob:
+        - /etc/ssh/ssh_host_ecdsa_key*
+
+    - name: Enabling sshd in rc.conf
+      community.general.sysrc:
+        name: '{{ item.name }}'
+        value: '{{ item.value }}'
+      with_items:
+        - { name: sshd_enable, value: 'YES' }
+        - { name: sshd_ecdsa_enable, value: 'NO' }
+      notify:
+        - sort rc.conf

@@ -1,0 +1,32 @@
+- name: Configuring ntpd
+  notify:
+    - restart ntpd
+  block:
+    - name: Disabling Default NTP Servers
+      ansible.builtin.replace:
+        path: /etc/ntp.conf
+        regexp: '^(pool \d\.freebsd\.pool\.ntp\.org.*)$'
+        replace: '# \g<1>'
+
+    - name: Enabling US NTP Servers
+      ansible.builtin.replace:
+        path: /etc/ntp.conf
+        regexp: '^#\s?(pool \d\.)CC(\.pool\.ntp\.org.*)$'
+        replace: '\g<1>us\g<2>'
+
+    - name: Enabling Local NTP Server
+      ansible.builtin.replace:
+        path: /etc/ntp.conf
+        regexp: '^#\s?(server )time\.my-internal\.org(.*)$'
+        replace: '\g<1>{{ ntp_server }}\g<2>'
+      when: ntp_server is defined
+
+    - name: Enabling ntpd in rc.conf
+      community.general.sysrc:
+        name: '{{ item.name }}'
+        value: '{{ item.value }}'
+      with_items:
+        - { name: ntpd_enable, value: 'YES' }
+        - { name: ntpd_sync_on_start, value: 'YES' }
+      notify:
+        - sort rc.conf

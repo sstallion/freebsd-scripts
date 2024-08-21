@@ -1,0 +1,29 @@
+- name: Creating Temporary File
+  ansible.builtin.tempfile:
+    state: file
+  register: sort_tempfile
+  changed_when: false
+
+- name: Sorting File
+  ansible.builtin.shell: |
+    sort {{ sort_extra_args | default('') }} -o {{ sort_tempfile.path }} {{ sort_path }}
+  changed_when: false
+
+- name: Updating File
+  ansible.builtin.copy:
+    src: '{{ sort_tempfile.path }}'
+    dest: '{{ sort_path }}'
+    mode: '{{ sort_mode }}'
+    remote_src: true
+  register: sort_file
+
+- name: Running Post Command
+  ansible.builtin.command: '{{ sort_post }}'
+  changed_when: true
+  when: sort_post is defined and sort_file.changed
+
+- name: Removing Temporary File
+  ansible.builtin.file:
+    path: '{{ sort_tempfile.path }}'
+    state: absent
+  changed_when: false

@@ -1,0 +1,34 @@
+- name: Configuring Host
+  hosts: all
+  tasks:
+    - name: Configuring Base
+      ansible.builtin.include_role:
+        name: base
+        tasks_from: '{{ file }}'
+      loop:
+        - certs
+        - console
+        - devices
+        - freebsd-update
+        - hosts
+        - mail
+        - periodic
+        - pkg
+        - root
+        - zfs
+      loop_control:
+        loop_var: file
+
+    - name: Configuring Services
+      ansible.builtin.include_role:
+        name: services
+        tasks_from: '{{ file }}'
+      loop:
+        - dma
+        - dynamic_motd
+        - ntpd
+        - smartd
+        - sshd
+        - syslogd
+      loop_control:
+        loop_var: file
