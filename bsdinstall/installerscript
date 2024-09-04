@@ -33,6 +33,5 @@ pkg install -y py311-ansible
 git clone https://github.com/sstallion/freebsd-scripts.git /var/scripts
 (
 	cd /var/scripts/ansible &&
-	ansible-playbook --extra-vars "{ skip_services: true }" \
-			 --inventory "$(hostname)," --connection local site.yml
+	sh ansible-local --extra-vars "{ skip_services: true }" site.yml
 )
