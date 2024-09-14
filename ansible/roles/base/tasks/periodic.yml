@@ -31,5 +31,8 @@
     - { name: monthly_status_security_inline, value: 'YES' }
     - { name: security_show_success, value: 'NO' }
     - { name: security_show_info, value: 'NO' }
+    # Packages are not updated regularly enough on the quarterly branch to
+    # make pkgaudit useful when daily_pkg_update_enable is enabled.
+    - { name: security_status_pkgaudit_enable, value: 'NO' }
   notify:
     - sort periodic.conf
