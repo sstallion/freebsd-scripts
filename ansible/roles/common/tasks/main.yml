@@ -1,4 +1,4 @@
-- name: Checking for Disks
+- name: Checking Disks
   ansible.builtin.find:
     patterns:
       - '^a?da\d+$'
@@ -8,7 +8,13 @@
     use_regex: true
   register: find_disks
 
-- name: Checking for ZFS
+- name: Checking Jail
+  ansible.builtin.command: sysctl -n security.jail.jailed
+  register: sysctl_jail
+  changed_when: false
+  failed_when: false
+
+- name: Checking ZFS
   ansible.builtin.command: kldstat -q -m zfs
   register: kldstat_zfs
   changed_when: false
@@ -18,4 +24,12 @@
   ansible.builtin.set_fact:
     disks: '{{ find_disks.files }}'
     has_zfs: '{{ kldstat_zfs.rc == 0 }}'
+    is_jail: '{{ sysctl_jail.stdout == "1" }}'
     cacheable: true
+
+- name: Checking Host Compatibility
+  ansible.builtin.fail:
+    msg: 'Incompatible host configuration; is this a jail?'
+  when: >
+    requires_host | default(false) and is_jail or
+    requires_jail | default(false) and not is_jail

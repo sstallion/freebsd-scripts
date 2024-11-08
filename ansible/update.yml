@@ -1,7 +1,10 @@
 - name: Updating Host
   hosts: all
+  roles:
+    - common
   vars:
     ports_repo: https://git.FreeBSD.org/ports.git
+    requires_host: true
     uefi_loader:
       amd64: bootx64.efi
       arm64: bootaa64.efi
@@ -16,7 +19,7 @@
       notify:
         - make index
       block:
-        - name: Checking for INDEX
+        - name: Checking INDEX
           ansible.builtin.find:
             path: /usr/ports/
             patterns: INDEX-*

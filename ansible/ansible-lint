@@ -1,0 +1,2 @@
+#!/bin/sh
+exec env ANSIBLE_ASK_VAULT_PASS=False ansible-lint "$@"

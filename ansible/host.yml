@@ -1,5 +1,9 @@
 - name: Configuring Host
   hosts: all
+  roles:
+    - common
+  vars:
+    requires_host: true
   tasks:
     - name: Configuring Base
       ansible.builtin.include_role:

@@ -1,17 +1,4 @@
-- name: Finding Periodic Scripts
-  ansible.builtin.find:
-    paths: /var/scripts/periodic/
-    recurse: true
-  register: find_scripts
-
-- name: Linking Periodic Scripts
-  ansible.builtin.file:
-    src: '{{ item.path }}'
-    dest: "/usr/local/etc/periodic/{{ item.path | relpath('/var/scripts/periodic/') }}"
-    state: link
-  with_items: '{{ find_scripts.files }}'
-
-- name: Updating periodic.conf
+- name: Configuring periodic.conf
   community.general.sysrc:
     name: '{{ item.name }}'
     value: '{{ item.value }}'
@@ -20,9 +7,6 @@
     - { name: daily_show_success, value: 'NO' }
     - { name: daily_show_info, value: 'NO' }
     - { name: daily_status_security_inline, value: 'YES' }
-    - { name: daily_pkg_update_enable, value: 'YES' }
-    - { name: daily_ports_update_enable, value: 'YES' }
-    - { name: daily_scripts_update_enable, value: 'YES' }
     - { name: weekly_show_success, value: 'NO' }
     - { name: weekly_show_info, value: 'NO' }
     - { name: weekly_status_security_inline, value: 'YES' }
@@ -36,3 +20,31 @@
     - { name: security_status_pkgaudit_enable, value: 'NO' }
   notify:
     - sort periodic.conf
+
+- name: Configuring Periodic Scripts
+  when: not is_jail
+  block:
+    - name: Finding Periodic Scripts
+      ansible.builtin.find:
+        paths: /var/scripts/periodic/
+        recurse: true
+      register: find_scripts
+
+    - name: Linking Periodic Scripts
+      ansible.builtin.file:
+        src: '{{ item.path }}'
+        dest: "/usr/local/etc/periodic/{{ item.path | relpath('/var/scripts/periodic/') }}"
+        state: link
+      with_items: '{{ find_scripts.files }}'
+
+    - name: Updating periodic.conf
+      community.general.sysrc:
+        name: '{{ item.name }}'
+        value: '{{ item.value }}'
+        path: /etc/periodic.conf
+      with_items:
+        - { name: daily_pkg_update_enable, value: 'YES' }
+        - { name: daily_ports_update_enable, value: 'YES' }
+        - { name: daily_scripts_update_enable, value: 'YES' }
+      notify:
+        - sort periodic.conf

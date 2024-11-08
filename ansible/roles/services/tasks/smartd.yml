@@ -16,8 +16,8 @@
     - name: Creating /var/db/smartd
       ansible.builtin.file:
         path: /var/db/smartd/
-        mode: '0755'
         state: directory
+        mode: '0755'
       when: not smartd_db_dir.stat.exists
 
     - name: Installing smartd.conf in newsyslog.conf.d

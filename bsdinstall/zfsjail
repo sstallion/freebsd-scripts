@@ -1,0 +1,121 @@
+#!/bin/sh -e
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Copyright (c) 2024 Steven Stallion <sstallion@gmail.com>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+export DISTRIBUTIONS="base.txz"
+
+################################################################################
+# This script simplifies installation of jails using ZFS datasets and is
+# provided as an updated alternative to bsdinstall jail. The number of dialogs
+# presented is also greatly reduced, making this a semi-interactive
+# alternative to scripting.
+#
+# The following changes have been made to the original behavior:
+#
+# - The mirror selection dialog will not be shown; the main site will always
+#   be selected.
+# - Fetched distributions will match the host's processor and release.
+# - ZFS datasets will be created automatically for root filesystems.
+# - pkg(7) is bootstrapped and additional packages are installed by default.
+# - The rootpass, adduser, and services dialogs will not be shown.
+################################################################################
+
+############################################################ INCLUDES
+
+BSDCFG_SHARE="/usr/share/bsdconfig"
+. $BSDCFG_SHARE/common.subr || exit 1
+
+############################################################ CONFIGURATION
+
+#
+# Default name of the root pool
+#
+: ${ZFSJAIL_POOL_NAME:=zroot}
+
+#
+# Default name for the root dataset
+#
+: ${ZFSJAIL_ROOT_NAME:=jail}
+
+############################################################ MAIN
+
+f_dprintf "Began Installation at %s" "$(date)"
+
+export BSDINSTALL_CHROOT=/$ZFSJAIL_ROOT_NAME/$1
+
+# Create ZFS dataset
+if [ ! -d "$BSDINSTALL_CHROOT" ]; then
+	zfs create $ZFSJAIL_POOL_NAME/$ZFSJAIL_ROOT_NAME/$1
+fi
+
+# Fetch distributions based on host processor and release
+export BSDINSTALL_DISTDIR="/usr/freebsd-dist"
+export BSDINSTALL_PROCESSOR=$(uname -p)
+export BSDINSTALL_RELEASE=$(uname -r)
+export BSDINSTALL_DISTSITE=https://download.freebsd.org/ftp/releases/$BSDINSTALL_PROCESSOR/${BSDINSTALL_RELEASE%-*}
+
+FETCH_DISTRIBUTIONS=""
+for dist in $DISTRIBUTIONS; do
+	if [ ! -f $BSDINSTALL_DISTDIR/$dist ]; then
+		FETCH_DISTRIBUTIONS="$FETCH_DISTRIBUTIONS $dist"
+	fi
+done
+
+if [ ! -z "$FETCH_DISTRIBUTIONS" ]; then
+	mkdir -p $BSDINSTALL_DISTDIR
+	bsdinstall distfetch
+fi
+
+bsdinstall mount
+
+# Unpack distributions
+bsdinstall checksum
+bsdinstall distextract
+
+# Finalize install
+bsdinstall config
+cp /etc/resolv.conf $BSDINSTALL_CHROOT/etc
+cp /etc/localtime $BSDINSTALL_CHROOT/etc
+
+chroot $BSDINSTALL_CHROOT /bin/sh 2>&1 <<-'EOF'
+	touch /etc/fstab
+	mkdir -p /var/scripts
+
+	# Bootstrap pkg(7) and install additional packages
+	pkg bootstrap -y
+	pkg update
+	pkg install -y py311-ansible
+EOF
+
+bsdinstall entropy
+bsdinstall umount
+
+f_dprintf "Installation Completed at %s" "$(date)"
+
+exit $SUCCESS
+
+################################################################################
+# END
+################################################################################

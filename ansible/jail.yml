@@ -1,0 +1,31 @@
+- name: Configuring Jail
+  hosts: all
+  roles:
+    - common
+  vars:
+    requires_jail: true
+  tasks:
+    - name: Configuring Base
+      ansible.builtin.include_role:
+        name: base
+        tasks_from: '{{ file }}'
+      loop:
+        - certs
+        - freebsd-update
+        - hosts
+        - mail
+        - periodic
+        - pkg
+      loop_control:
+        loop_var: file
+
+    - name: Configuring Services
+      ansible.builtin.include_role:
+        name: services
+        tasks_from: '{{ file }}'
+      loop:
+        - dma
+        - dynamic_motd
+        - syslogd
+      loop_control:
+        loop_var: file
