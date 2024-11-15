@@ -14,6 +14,12 @@
   changed_when: false
   failed_when: false
 
+- name: Checking VNET
+  ansible.builtin.command: sysctl -n security.jail.vnet
+  register: sysctl_vnet
+  changed_when: false
+  failed_when: false
+
 - name: Checking ZFS
   ansible.builtin.command: kldstat -q -m zfs
   register: kldstat_zfs
@@ -25,6 +31,7 @@
     disks: '{{ find_disks.files }}'
     has_zfs: '{{ kldstat_zfs.rc == 0 }}'
     is_jail: '{{ sysctl_jail.stdout == "1" }}'
+    is_vnet: '{{ sysctl_vnet.stdout == "1" }}'
     cacheable: true
 
 - name: Checking Host Compatibility
@@ -32,4 +39,5 @@
     msg: 'Incompatible host configuration; is this a jail?'
   when: >
     requires_host | default(false) and is_jail or
-    requires_jail | default(false) and not is_jail
+    requires_jail | default(false) and not is_jail or
+    requires_vnet | default(false) and not is_vnet

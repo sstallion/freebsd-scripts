@@ -1,28 +1,32 @@
-- name: Installing oath-toolkit
-  community.general.pkgng:
-    name: oath-toolkit
-    state: present
+- name: Configuring OATH
+  when: not is_jail
+  block:
+    - name: Installing oath-toolkit
+      community.general.pkgng:
+        name: oath-toolkit
+        state: present
 
-- name: Setting Facts for OATH
-  ansible.builtin.set_fact:
-    oath_module_path: /usr/local/lib/security/pam_oath.so
-    oath_usersfile: /usr/local/etc/users.oath
-    cacheable: true
+    - name: Setting Facts for OATH
+      ansible.builtin.set_fact:
+        oath_module_path: /usr/local/lib/security/pam_oath.so
+        oath_usersfile: /usr/local/etc/users.oath
+        cacheable: true
 
-- name: Creating users.oath
-  ansible.builtin.copy:
-    content: ''
-    dest: '{{ oath_usersfile }}'
-    force: false
-    mode: '0600'
+    - name: Creating users.oath
+      ansible.builtin.copy:
+        content: ''
+        dest: '{{ oath_usersfile }}'
+        force: false
+        mode: '0600'
 
-- name: Adding pam_oath to sshd
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/sshd
-    line: "auth\t\trequired\t{{ oath_module_path }}\tusersfile={{ oath_usersfile }}" # noqa: no-tabs
-    insertafter: '^auth.*pam_unix\.so'
+    - name: Adding pam_oath to sshd
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        line: "auth\t\trequired\t{{ oath_module_path }}\tusersfile={{ oath_usersfile }}" # noqa: no-tabs
+        insertafter: '^auth.*pam_unix\.so'
 
 - name: Configuring sshd
+  when: not is_jail or is_vnet
   notify:
     - restart sshd
   block:

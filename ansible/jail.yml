@@ -26,6 +26,7 @@
       loop:
         - dma
         - dynamic_motd
+        - sshd
         - syslogd
       loop_control:
         loop_var: file
