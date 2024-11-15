@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Copyright (c) 2022 Steven Stallion <sstallion@gmail.com>
+# Copyright (c) 2024 Steven Stallion <sstallion@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,15 +24,29 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+import argparse
 import subprocess
 import sys
 
 FREEBSD_UPDATE_BIN = '/usr/sbin/freebsd-update'
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog='check_freebsd.py',
+        description='This plugin tests FreeBSD update status')
+
+    parser.add_argument(
+        '--jail', '-j', metavar='jailname',
+        help='check jail instead of the main system')
+
+    args = parser.parse_args()
     try:
-        proc = subprocess.run([FREEBSD_UPDATE_BIN, 'updatesready'],
-                              stdout=subprocess.PIPE, text=True)
+        run_args = [FREEBSD_UPDATE_BIN]
+        if args.jail is not None:
+            run_args.extend(['-j', args.jail])
+        run_args.append('updatesready')
+
+        proc = subprocess.run(run_args, stdout=subprocess.PIPE, text=True)
         stdout = proc.stdout.strip()
         if proc.returncode == 0:
             raise Exception(stdout)
