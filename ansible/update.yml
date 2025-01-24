@@ -48,6 +48,7 @@
             set -o errexit
             git -C /usr/ports fetch --depth 1 origin {{ ports_latest.stdout }}:{{ ports_latest.stdout }}
             git -C /usr/ports switch {{ ports_latest.stdout }}
+            git -C /usr/ports --set-upstream-to=origin/{{ ports_latest.stdout }} {{ ports_latest.stdout }}
           changed_when: true
           when: ports_branch.stdout != ports_latest.stdout
 
