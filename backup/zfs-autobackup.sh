@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Copyright (c) 2022 Steven Stallion <sstallion@gmail.com>
+# Copyright (c) 2025 Steven Stallion <sstallion@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,8 +30,9 @@ readonly EFLOCK=127	# Backup still in progress
 
 namevar()
 {
+	local _name=$(echo $name | sed -e 's/[^A-z0-9_]/_/g')
 	for var; do
-		eval $var=\$${name}$var
+		eval $var=\$${_name}$var
 		eval val=\$$var
 		if [ -z "$val" ]; then
 			eval $var=\$default$var
@@ -91,7 +92,7 @@ cron()
 
 list()
 {
-	command="zfs list -H -r -o name,creation -S creation -t snapshot $* ${_target_path}"
+	local command="zfs list -H -r -o name,creation -S creation -t snapshot $* ${_target_path}"
 	(
 		if [ -z "${_target_path}" ]; then
 			sh -c "${command}"
@@ -109,7 +110,7 @@ summary()
 backup()
 {
 	flock -E $EFLOCK -n $lockfile zfs-autobackup $_flags $* $name $_target_path
-	_status=$?
+	local _status=$?
 	if [ $_status != 0 ]; then
 		if [ $_status = $EFLOCK ]; then
 			echo 1>&2 "Backup still in progress; check ${logfile}."

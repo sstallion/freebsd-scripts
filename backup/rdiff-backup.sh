@@ -31,8 +31,9 @@ readonly EFLOCK=127	# Backup still in progress
 
 namevar()
 {
+	local _name=$(echo $name | sed -e 's/[^A-z0-9_]/_/g')
 	for var; do
-		eval $var=\$${name}$var
+		eval $var=\$${_name}$var
 		eval val=\$$var
 		if [ -z "$val" ]; then
 			eval $var=\$default$var
@@ -69,14 +70,14 @@ cron()
 
 list()
 {
-	_time=${1:-$_retention}
+	local _time=${1:-$_retention}
 	run_local list files --changed-since $_time $_target
 }
 
 backup()
 {
 	run_remote backup $_flags $* $_source $_target
-	_status=$?
+	local _status=$?
 	if [ $_status != 0 ]; then
 		if [ $_status = $EFLOCK ]; then
 			echo 1>&2 "Backup still in progress; check ${logfile}."
@@ -90,7 +91,7 @@ backup()
 prune()
 {
 	run_remote remove increments --older-than $_retention $* $_target 2>/dev/null
-	_status=$?
+	local _status=$?
 	if [ $_status != 0 ]; then
 		if [ $_status = $EFLOCK ]; then
 			echo 1>&2 "Backup still in progress; check ${logfile}."
@@ -110,7 +111,7 @@ prune()
 regress()
 {
 	run_remote regress $* $_target
-	_status=$?
+	local _status=$?
 	if [ $_status != 0 ]; then
 		if [ $_status = $EFLOCK ]; then
 			echo 1>&2 "Backup still in progress; check ${logfile}."
