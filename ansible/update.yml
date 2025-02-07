@@ -10,10 +10,20 @@
       arm64: bootaa64.efi
   tasks:
     - name: Updating Packages
-      community.general.pkgng:
-        name: '*'
-        state: latest
-        autoremove: true
+      block:
+        - name: Updating Packages
+          community.general.pkgng:
+            name: '*'
+            state: latest
+            autoremove: true
+
+        - name: Updating Jail Packages
+          community.general.pkgng:
+            name: '*'
+            state: latest
+            autoremove: true
+            jail: '{{ item }}'
+          with_items: '{{ jails }}'
 
     - name: Updating Ports
       notify:
@@ -53,11 +63,20 @@
           when: ports_branch.stdout != ports_latest.stdout
 
     - name: Updating FreeBSD
-      ansible.builtin.command: freebsd-update --not-running-from-cron fetch install
-      register: freebsd_update
-      changed_when: "'No updates are available to install.' not in freebsd_update.stdout_lines"
       notify:
         - reboot
+      block:
+        - name: Updating FreeBSD
+          ansible.builtin.command: freebsd-update --not-running-from-cron fetch install
+          register: freebsd_update
+          changed_when: "'No updates are available to install.' not in freebsd_update.stdout_lines"
+
+        - name: Updating FreeBSD Jails
+          ansible.builtin.command: freebsd-update -j {{ item }} --not-running-from-cron fetch install
+          register: freebsd_update_jails
+          changed_when: "'No updates are available to install.' not in freebsd_update_jails.stdout_lines"
+          with_items: '{{ jails }}'
+
   handlers:
     - name: Updating INDEX
       ansible.builtin.command: make -C /usr/ports index
