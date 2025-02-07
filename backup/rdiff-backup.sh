@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Copyright (c) 2022 Steven Stallion <sstallion@gmail.com>
+# Copyright (c) 2025 Steven Stallion <sstallion@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions

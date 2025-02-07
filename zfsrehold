@@ -26,24 +26,19 @@
 
 set -o errexit
 
-if [ $# -lt 1 ]; then
-	echo 1>&2 "Usage: $(basename $0) device id ..."
+if [ $# -lt 2 ]; then
+	echo 1>&2 "Usage: $(basename $0) oldtag newtag [filesystem ...]"
 	exit 1
 fi
 
-# Permanently disable spin-down and head parking for spinning disks;
-# see: https://serverfault.com/a/1047332
-for _dev; do
-	# Disable APM and enable EPC:
-	camcontrol apm $_dev
-	camcontrol epc $_dev -c enable
-
-	# Permanently disable spin-down:
-	camcontrol epc $_dev -c state -d -p standby_z -s
-
-	# Permanently disable head parking:
-	camcontrol epc $_dev -c state -d -p idle_b -s
-	camcontrol epc $_dev -c state -d -p idle_c -s
-	camcontrol epc $_dev -c state -d -p standby_y -s
+oldtag=$1; shift
+newtag=$1; shift
+for snapshot in $(zfs get -H -o name -t snapshot userrefs $*); do
+	for tag in $(zfs holds -H $snapshot | cut -f 2); do
+		if [ "$tag" = "$oldtag" ]; then
+			zfs hold $newtag $snapshot
+			zfs release $oldtag $snapshot
+		fi
+	done
 done
 exit 0

@@ -24,17 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-if [ $# -lt 1 ]; then
-	echo 1>&2 "Usage: $(basename $0) filesystem ..."
-	exit 1
-fi
+set -o errexit
 
-# Destroy snapshots in descending order:
-for snapshot in $(zfs list -H -S creation -o name -t snapshot $*); do
-	# Holds must be released prior to destroying a snapshot:
-	for tag in $(zfs holds -H $snapshot | cut -f 2); do
-		zfs release $tag $snapshot
-	done
-	zfs destroy $snapshot
-done
+zfs get -H -o name -t snapshot userrefs $* | xargs zfs holds
 exit 0

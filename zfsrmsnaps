@@ -27,23 +27,16 @@
 set -o errexit
 
 if [ $# -lt 1 ]; then
-	echo 1>&2 "Usage: $(basename $0) device id ..."
+	echo 1>&2 "Usage: $(basename $0) filesystem ..."
 	exit 1
 fi
 
-# Permanently disable spin-down and head parking for spinning disks;
-# see: https://serverfault.com/a/1047332
-for _dev; do
-	# Disable APM and enable EPC:
-	camcontrol apm $_dev
-	camcontrol epc $_dev -c enable
-
-	# Permanently disable spin-down:
-	camcontrol epc $_dev -c state -d -p standby_z -s
-
-	# Permanently disable head parking:
-	camcontrol epc $_dev -c state -d -p idle_b -s
-	camcontrol epc $_dev -c state -d -p idle_c -s
-	camcontrol epc $_dev -c state -d -p standby_y -s
+# Destroy snapshots in descending order:
+for snapshot in $(zfs list -H -S creation -o name -t snapshot $*); do
+	# Holds must be released prior to destroying a snapshot:
+	for tag in $(zfs holds -H $snapshot | cut -f 2); do
+		zfs release $tag $snapshot
+	done
+	zfs destroy $snapshot
 done
 exit 0
