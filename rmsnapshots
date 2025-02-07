@@ -25,16 +25,16 @@
 # SUCH DAMAGE.
 
 if [ $# -lt 1 ]; then
-	echo 1>&2 "Usage: $(basename $0) tag filesystem ..."
+	echo 1>&2 "Usage: $(basename $0) filesystem ..."
 	exit 1
 fi
 
-# It's underhanded, but it's easier to attempt to release a hold whether one
-# exists or not before destroying a snapshot. The following will remove all
-# snapshots (in reverse order) for a given dataset.
-tag=$1; shift
-for snapshot in $(zfs list -H -o name -t snapshot $* | sort -r); do
-	zfs release $tag $snapshot >/dev/null 2>&1
+# Destroy snapshots in descending order:
+for snapshot in $(zfs list -H -S creation -o name -t snapshot $*); do
+	# Holds must be released prior to destroying a snapshot:
+	for tag in $(zfs holds -H $snapshot | cut -f 2); do
+		zfs release $tag $snapshot
+	done
 	zfs destroy $snapshot
 done
 exit 0
