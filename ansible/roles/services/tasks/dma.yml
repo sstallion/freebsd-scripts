@@ -11,23 +11,14 @@
     group: mail
     mode: '0640'
 
-- name: Installing mailer.conf
-  ansible.builtin.copy:
-    src: /usr/share/examples/dma/mailer.conf
-    dest: /etc/mail/
-    mode: '0644'
-    remote_src: true
-
 - name: Configuring dma in rc.conf
   community.general.sysrc:
     name: '{{ item.name }}'
     value: '{{ item.value }}'
   with_items:
     - { name: dma_flushq_enable, value: 'YES' }
-    - { name: sendmail_enable, value: 'NONE' }
   notify:
     - sort rc.conf
-    - stop sendmail
 
 - name: Disabling sendmail in periodic.conf
   community.general.sysrc:

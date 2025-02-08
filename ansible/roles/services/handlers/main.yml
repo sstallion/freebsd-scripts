@@ -32,10 +32,3 @@
     state: restarted
   when: not skip_services | default(false)
   listen: restart syslogd
-
-- name: Stopping sendmail
-  ansible.builtin.service:
-    name: sendmail
-    state: stopped
-  when: not skip_services | default(false)
-  listen: stop sendmail
