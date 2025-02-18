@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/local/bin/python
 # SPDX-License-Identifier: BSD-2-Clause
 #
 # Copyright (c) 2023 Steven Stallion <sstallion@gmail.com>
