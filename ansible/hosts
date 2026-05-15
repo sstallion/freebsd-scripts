@@ -1,7 +1,3 @@
-bkg:
+ungrouped:
   hosts:
-    anchorage.bkg.quuxotic.net:
-
-stl:
-  hosts:
-    bailiwick.stl.quuxotic.net:
+    bailiwick.quuxotic.net:
