@@ -5,12 +5,14 @@ provide automated backups on FreeBSD. Two scripts are available to manage file
 backups (`rdiff-backup.sh`) and ZFS snapshots and backups (`zfs-autobackup.sh`).
 
 The following dependencies should be installed to use these scripts:
-```
-# pkg install flock moreutils py39-rdiff-backup py39-zfs-autobackup
+
+```shell
+pkg install flock moreutils py39-rdiff-backup py39-zfs-autobackup
 ```
 
 The following should be added to `/etc/crontab` to schedule backups:
-```
+
+```shell
 SHELL=/bin/sh
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 #
@@ -24,6 +26,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 Job output is logged in the `/var/log/backup` directory. To manage log sizes,
 `newsyslog(8)` can be configured to rotate logs periodically:
+
 ```
 /var/log/backup/*.log                   640  4     *    $W0     GJ
 ```

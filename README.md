@@ -6,9 +6,10 @@ separate `README` is provided.
 
 ## Installation
 
-To install on a new system, issue:
-```
-# git clone https://github.com/sstallion/freebsd-scripts.git /var/scripts
+To install on a new system, issue as superuser:
+
+```shell
+git clone https://github.com/sstallion/freebsd-scripts.git /var/scripts
 ```
 
 > [!NOTE]
@@ -17,10 +18,11 @@ To install on a new system, issue:
 
 ### Updates
 
-Daily updates can be enabled by issuing:
-```
-# ln -s /var/scripts/periodic/900.scripts-update /usr/local/etc/periodic/daily
-# sysrc -f /etc/periodic.conf daily_scripts_update_enable="YES"
+Daily updates can be enabled as superuser by issuing:
+
+```shell
+ln -s /var/scripts/periodic/900.scripts-update /usr/local/etc/periodic/daily
+sysrc -f /etc/periodic.conf daily_scripts_update_enable="YES"
 ```
 
 ## Contributing
