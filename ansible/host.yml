@@ -10,7 +10,6 @@
         name: base
         tasks_from: '{{ file }}'
       loop:
-        - certs
         - console
         - devices
         - freebsd-update
