@@ -24,7 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-export DISTRIBUTIONS="base.txz"
+export DISTRIBUTIONS="base.txz src.txz"
 
 ################################################################################
 # This script simplifies installation of jails using ZFS datasets and is
