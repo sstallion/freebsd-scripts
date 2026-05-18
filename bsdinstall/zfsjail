@@ -76,11 +76,11 @@ export BSDINSTALL_PROCESSOR=$(uname -p)
 export BSDINSTALL_RELEASE=$(uname -r)
 export BSDINSTALL_DISTSITE=https://download.freebsd.org/ftp/releases/$BSDINSTALL_PROCESSOR/${BSDINSTALL_RELEASE%-*}
 
+# Always fetch distributions; this avoids creating jails with stale
+# configurations which is an utter pain in the ass to resolve.
 FETCH_DISTRIBUTIONS=""
 for dist in $DISTRIBUTIONS; do
-	if [ ! -f $BSDINSTALL_DISTDIR/$dist ]; then
-		FETCH_DISTRIBUTIONS="$FETCH_DISTRIBUTIONS $dist"
-	fi
+	FETCH_DISTRIBUTIONS="$FETCH_DISTRIBUTIONS $dist"
 done
 
 if [ ! -z "$FETCH_DISTRIBUTIONS" ]; then
