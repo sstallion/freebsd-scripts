@@ -14,5 +14,10 @@
 - name: Updating sudoers
   ansible.builtin.replace:
     path: /usr/local/etc/sudoers
-    regexp: '^#\s?(%wheel ALL=\(ALL:ALL\) ALL)$'
+    regexp: '{{ regexp }}'
     replace: '\g<1>'
+  loop:
+    - '^#\s?(%wheel ALL=\(ALL:ALL\) ALL)$'
+    - '^#\s?(%sudo ALL=\(ALL:ALL\) ALL)$'
+  loop_control:
+    loop_var: regexp
