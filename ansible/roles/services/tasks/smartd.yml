@@ -20,28 +20,6 @@
         mode: '0755'
       when: not smartd_db_dir.stat.exists
 
-    - name: Installing smartd.conf in newsyslog.conf.d
-      ansible.builtin.copy:
-        src: files/newsyslog.conf.d/smartd.conf
-        dest: /usr/local/etc/newsyslog.conf.d/
-        mode: '0644'
-      notify:
-        - create logs
-
-    - name: Installing smartd.conf in syslog.d
-      ansible.builtin.copy:
-        src: files/syslog.d/smartd.conf
-        dest: /usr/local/etc/syslog.d/
-        mode: '0644'
-      notify:
-        - restart syslogd
-
-    - name: Updating syslog.conf
-      ansible.builtin.lineinfile:
-        path: /etc/syslog.conf
-        line: '!-smartd'
-        insertbefore: '^daemon\.info'
-
     - name: Installing smartd.conf
       ansible.builtin.copy:
         src: files/smartd.conf
