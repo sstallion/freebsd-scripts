@@ -373,6 +373,7 @@ chroot $BSDINSTALL_CHROOT /bin/sh 2>&1 <<-'EOF'
 	pkg bootstrap -y
 	pkg update
 	pkg install -y git
+        pkg clean -ay
 
 	ports_repo="https://git.FreeBSD.org/ports.git"
 	ports_branch=$(git ls-remote --heads --sort=-v:refname $ports_repo "20[0-9][0-9]Q[1-4]" | head -n 1 | cut -f 3 -d /)

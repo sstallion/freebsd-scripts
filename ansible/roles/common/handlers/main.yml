@@ -1,7 +1,18 @@
 - name: Creating Logs
-  ansible.builtin.command: newsyslog -C
+  ansible.builtin.command: newsyslog -CN
   changed_when: true
   listen: create logs
+
+- name: Cleaning Packages
+  ansible.builtin.command: pkg clean -ay
+  changed_when: true
+  listen: pkg clean
+
+- name: Cleaning Jail Packages
+  ansible.builtin.command: pkg -j '{{ jail }}' -ay
+  loop: '{{ jails }}'
+  changed_when: true
+  listen: pkg clean
 
 - name: Sorting passwd
   ansible.builtin.include_tasks: sort.yml

@@ -4,6 +4,8 @@
   when: disks | length > 0
   block:
     - name: Installing smartmontools
+      notify:
+        - pkg clean
       community.general.pkgng:
         name: smartmontools
         state: present

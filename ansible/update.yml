@@ -10,6 +10,8 @@
       arm64: bootaa64.efi
   tasks:
     - name: Updating Packages
+      notify:
+        - pkg clean
       block:
         - name: Updating Packages
           community.general.pkgng:

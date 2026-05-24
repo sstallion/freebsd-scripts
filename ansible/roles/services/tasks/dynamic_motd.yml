@@ -1,4 +1,6 @@
 - name: Installing dynamic_motd
+  notify:
+    - pkg clean
   community.general.pkgng:
     name: [dynamic_motd, figlet]
     state: present

@@ -26,6 +26,7 @@
 
 # Install additional packages
 pkg install -y py311-ansible
+pkg clean -ay
 
 # Install administrative scripts and provision host
 git clone https://github.com/sstallion/freebsd-scripts.git /var/scripts

@@ -107,6 +107,7 @@ chroot $BSDINSTALL_CHROOT /bin/sh 2>&1 <<-'EOF'
 	pkg bootstrap -y
 	pkg update
 	pkg install -y py311-ansible
+        pkg clean -ay
 EOF
 
 bsdinstall entropy

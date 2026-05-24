@@ -1,4 +1,6 @@
 - name: Installing uclcmd
+  notify:
+    - pkg clean
   community.general.pkgng:
     name: uclcmd
     state: present
