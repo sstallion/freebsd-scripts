@@ -1,0 +1,16 @@
+- name: Installing sudo
+  notify:
+    - pkg clean
+  community.general.pkgng:
+    name: sudo
+    state: present
+
+- name: Updating sudoers
+  ansible.builtin.replace:
+    path: /usr/local/etc/sudoers
+    regexp: '{{ regexp }}'
+    replace: '\g<1>'
+  loop:
+    - '^#\s?(%wheel ALL=\(ALL:ALL\) ALL)$'
+  loop_control:
+    loop_var: regexp

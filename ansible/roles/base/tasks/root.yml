@@ -5,21 +5,3 @@
   vars:
     ssh_type: ed25519 # noqa: var-naming
     ssh_authorized_keys: '{{ authorized_keys }}' # noqa: var-naming
-
-- name: Installing sudo
-  notify:
-    - pkg clean
-  community.general.pkgng:
-    name: sudo
-    state: present
-
-- name: Updating sudoers
-  ansible.builtin.replace:
-    path: /usr/local/etc/sudoers
-    regexp: '{{ regexp }}'
-    replace: '\g<1>'
-  loop:
-    - '^#\s?(%wheel ALL=\(ALL:ALL\) ALL)$'
-    - '^#\s?(%sudo ALL=\(ALL:ALL\) ALL)$'
-  loop_control:
-    loop_var: regexp
