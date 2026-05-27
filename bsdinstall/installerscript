@@ -32,5 +32,5 @@ pkg clean -ay
 git clone https://github.com/sstallion/freebsd-scripts.git /var/scripts
 (
 	cd /var/scripts/ansible &&
-	sh ansible-local --extra-vars "{ skip_services: true }" site.yml
+	sh ansible-local --extra-vars "{ skip_services: true }" host.yml
 )

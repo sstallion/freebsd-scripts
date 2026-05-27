@@ -50,8 +50,8 @@ export DISTRIBUTIONS="kernel.txz base.txz src.txz"
 # - Home directories are placed under /home to align with 14.0-RELEASE
 # - /var/backups has been promoted to a dataset to enable offsite backup using
 #   zfs-send(8) / zfs-receive(8)
-# - ZFS encryption is enabled by default on the zroot/home and zroot/var/backups
-#   datasets to support offsite backups to untrusted systems (eg. rsync.net)
+# - ZFS encryption is enabled by default on the zroot/var/backups dataset to
+#   support offsite backup to untrusted systems (eg. rsync.net)
 # - The zroot/tmp dataset is omitted in favor of tmpfs(5)
 # - pkg(7) is bootstrapped and the most recent quarterly branch of ports(7)
 #   is installed using Git
@@ -269,7 +269,7 @@ zfs_create_key()
 zfs_create_datasets()
 {
 	# Home directories separated so they are common to all BEs
-	zfs create -o mountpoint=/home $ZFSBOOT_ENCRYPTION_OPTIONS $ZFSBOOT_POOL_NAME/home
+	zfs create -o mountpoint=/home $ZFSBOOT_POOL_NAME/home
 
 	# Compress /tmp, allow exec but not setuid
 	# zfs create -o mountpoint=/tmp -o setuid=off $ZFSBOOT_POOL_NAME/tmp
