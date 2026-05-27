@@ -24,14 +24,14 @@
 # SUCH DAMAGE.
 
 DESTDIR=	release-media
-IMAGES=		disc1.iso memstick.img
-INPUT!=		echo *-disc1.iso | head -n 1
+IMAGES=		dvd1.iso memstick.img
+INPUT!=		echo *-dvd1.iso | head -n 1
 LABEL!=		file ${INPUT} | sed -e "s/^.*'\(.*\)'.*/\1/"
 TARGET=		${MACHINE_ARCH}
 
 .PHONY: all clean install
 
-all: disc1.iso memstick.img
+all: dvd1.iso memstick.img
 
 clean:
 	rm -rf ${DESTDIR} ${IMAGES}
@@ -40,7 +40,7 @@ install: ${DESTDIR}
 	install -m 644 installerconfig ${DESTDIR}/etc
 	install -m 755 installerscript ${DESTDIR}/etc
 
-disc1.iso: install
+dvd1.iso: install
 	sh /usr/src/release/${TARGET}/mkisoimages.sh -b '${LABEL}' ${.TARGET} ${DESTDIR}
 
 memstick.img: install
