@@ -46,7 +46,6 @@ export DISTRIBUTIONS="kernel.txz base.txz src.txz"
 #   to tuning(7)
 # - The primary boot environment is named for the current release (uname -r)
 #   instead of 'default'
-# - autotrim is enabled on the boot pool by default
 # - Home directories are placed under /home to align with 14.0-RELEASE
 # - /var/backups has been promoted to a dataset to enable offsite backup using
 #   zfs-send(8) / zfs-receive(8)
@@ -101,7 +100,7 @@ f_include $BSDCFG_SHARE/variable.subr
 #
 # Default options to use when creating zroot pool
 #
-: ${ZFSBOOT_POOL_CREATE_OPTIONS:=-o ashift=12 -o autotrim=on -O compression=lz4 -O atime=off}
+: ${ZFSBOOT_POOL_CREATE_OPTIONS:=-o ashift=12 -O compression=on -O atime=off}
 
 #
 # Default name for the boot environment parent dataset
