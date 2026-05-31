@@ -9,8 +9,8 @@
   listen: pkg clean
 
 - name: Cleaning Jail Packages
-  ansible.builtin.command: pkg -j '{{ jail }}' -ay
-  loop: '{{ jails }}'
+  ansible.builtin.command: pkg -j '{{ item }}' -ay
+  with_items: '{{ jails }}'
   changed_when: true
   listen: pkg clean
 

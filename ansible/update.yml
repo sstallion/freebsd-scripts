@@ -67,6 +67,15 @@
       notify:
         - reboot
       block:
+        - name: Lowering Security
+          ansible.builtin.command: sysrc kern_securelevel_enable="NO"
+          changed_when: false
+          when: is_secure
+
+        - name: Rebooting Host
+          ansible.builtin.reboot:
+          when: is_secure
+
         - name: Updating FreeBSD
           ansible.builtin.command: freebsd-update --not-running-from-cron fetch install
           register: freebsd_update
@@ -77,6 +86,11 @@
           register: freebsd_update_jails
           changed_when: "'No updates are available to install.' not in freebsd_update_jails.stdout_lines"
           with_items: '{{ jails }}'
+
+        - name: Raising Security
+          ansible.builtin.command: sysrc kern_securelevel_enable="YES"
+          changed_when: false
+          when: is_secure
       when: not is_pkgbase
 
   handlers:
@@ -93,7 +107,7 @@
         mode: preserve # msdosfs
         remote_src: true
       with_items:
-        - efi/boot/{{ uefi_loader[ansible_architecture] }}
+        - efi/boot/{{ uefi_loader[ansible_facts["architecture"]] }}
         - efi/freebsd/loader.efi
       when: "'/boot/loader.efi' in freebsd_update.stdout_lines"
       listen: reboot
