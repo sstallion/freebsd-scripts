@@ -1,4 +1,5 @@
 - name: Configuring ntpd
+  when: not is_jail
   notify:
     - restart ntpd
   block:

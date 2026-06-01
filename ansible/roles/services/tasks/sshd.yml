@@ -6,8 +6,8 @@
     - name: Updating sshd_config
       ansible.builtin.replace:
         path: /etc/ssh/sshd_config
-        regexp: '^#\s?(PermitRootLogin\s)no'
-        replace: '\g<1>prohibit-password'
+        regexp: '^(#\s*)?(PermitRootLogin\s).*$'
+        replace: '\g<2>prohibit-password'
 
     - name: Removing ECDSA Host Keys
       ansible.builtin.file:
