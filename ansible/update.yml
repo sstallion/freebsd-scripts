@@ -30,6 +30,7 @@
     - name: Updating Ports
       notify:
         - make index
+      when: has_ports
       block:
         - name: Checking INDEX
           ansible.builtin.find:

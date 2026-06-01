@@ -16,7 +16,7 @@
     type: '{{ ssh_type }}'
     size: '{{ ssh_size | default(0) }}'
     path: '~/.ssh/id_{{ ssh_type }}'
-    comment: '{{ ansible_user_id }}@{{ ansible_fqdn }}'
+    comment: "{{ ansible_facts['user_id'] }}@{{ ansible_facts['fqdn'] }}"
 
 - name: Updating Authorized Keys
   ansible.builtin.lineinfile:

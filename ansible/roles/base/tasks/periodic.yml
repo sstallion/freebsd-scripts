@@ -22,7 +22,7 @@
     - sort periodic.conf
 
 - name: Configuring Periodic Scripts
-  when: not is_jail
+  when: not is_jail and has_scripts
   block:
     - name: Finding Periodic Scripts
       ansible.builtin.find:
