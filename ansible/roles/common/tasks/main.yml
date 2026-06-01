@@ -32,6 +32,12 @@
   changed_when: false
   failed_when: false
 
+- name: Checking VM Guest
+  ansible.builtin.command: sysctl -n kern.vm_guest
+  register: sysctl_vm_guest
+  changed_when: false
+  failed_when: false
+
 - name: Checking VNET
   ansible.builtin.command: sysctl -n security.jail.vnet
   register: sysctl_vnet
@@ -51,6 +57,7 @@
     is_jail: '{{ sysctl_jailed.stdout == "1" }}'
     is_pkgbase: '{{ pkgbase.rc == 0 }}'
     is_secure: '{{ sysctl_securelevel.stdout | int > 0 }}'
+    is_vm: '{{ sysctl_vm_guest.stdout != "none" }}'
     is_vnet: '{{ sysctl_vnet.stdout == "1" }}'
     jails: '{{ jls_names.stdout.split() }}'
     cacheable: true

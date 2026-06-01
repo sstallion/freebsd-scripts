@@ -1,5 +1,5 @@
 - name: Configuring sshd
-  when: not is_jail or is_vnet
+  when: not is_jail
   notify:
     - restart sshd
   block:
