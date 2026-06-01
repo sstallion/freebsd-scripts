@@ -28,24 +28,20 @@
 
 # Stylize site name if FIGlet is installed:
 if command -v figlet >/dev/null; then
-	figlet "${motd_sitename}"
+	figlet "$motd_sitename"
 fi
 
 # Display system information:
 cat <<EOF
 
-${motd_version}
+$motd_version
+$motd_processor
 
-${motd_baseboard}
-${motd_processor}
-
-  Host: ${motd_host}
-    Up: ${motd_uptime}
-   CPU: ${motd_stats_cpu}
-   Mem: ${motd_stats_mem}
-   ARC: ${motd_stats_arc}
-        ${motd_stats_arc2}
-  Swap: ${motd_stats_swap}
-  Load: ${motd_load}
+  Host: $motd_host
+    Up: $motd_uptime
+   CPU: $motd_stats_cpu
+   Mem: $motd_stats_mem
+  Swap: $motd_stats_swap
+  Load: $motd_load
 
 EOF

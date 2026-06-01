@@ -35,17 +35,8 @@ fi
 # Displays OS version (copied from /etc/rc.d/motd).
 get_version()
 {
-	uname -v | sed -e 's,^\([^#]*\) #\(.* [1-2][0-9][0-9][0-9]\).*/\([^\]*\) $,\1 (\3) #\2,'
-}
-
-# Displays baseboard information.
-get_baseboard()
-{
-	printf '%s %s %s %s' \
-		"$(kenv -q smbios.planar.maker)" \
-		"$(kenv -q smbios.planar.product)" \
-		"$(kenv -q smbios.planar.version)" \
-		"$(kenv -q smbios.planar.serial)"
+	uname -v | sed -e 's,^\([^#]*\) #\(.* [1-2][0-9][0-9][0-9]\).*/\([^\]*\) $,\1 (\3) #\2,' \
+	    -e 's,^\([^ ]*\) \([^ ]*\) \([^ ]*\) \([^ ]*\)$,\1 \2 (\4) \3,'
 }
 
 # Displays processor information.
@@ -122,23 +113,27 @@ get_uptime()
 # Reads statistics from top(1), removing extra whitespace.
 read_stats()
 {
-	{
-		read -r motd_stats_cpu
-		read -r motd_stats_mem
-		read -r motd_stats_arc
-		read -r motd_stats_arc2
-		read -r motd_stats_swap
-	} <<-EOF
+	set --
+	while IFS= read -r line; do
+		set -- "$@" "$line"
+	done <<-EOF
 	$(top -b | awk '/^CPU:/, /^Swap:/ {
 		sub(/^([[:alpha:]]+:)?[[:blank:]]+/, "")
 		gsub(/[[:blank:]]{2,}/, " ")
 		print
 	}')
 	EOF
+
+	motd_stats_cpu=$1
+	motd_stats_mem=$2
+	if kldstat -q -m zfs; then
+		motd_stats_swap=$5
+	else
+		motd_stats_swap=$3
+	fi
 }
 
 motd_version=$(get_version)
-motd_baseboard=$(get_baseboard)
 motd_processor=$(get_processor)
 motd_host=$(get_host)
 motd_load=$(get_load)
