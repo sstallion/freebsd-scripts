@@ -18,5 +18,6 @@
         - { name: daily_status_zfs_enable, value: 'YES' }
         - { name: daily_scrub_zfs_enable, value: 'YES' }
         - { name: daily_scrub_zfs_default_threshold, value: '30' }
+        - { name: daily_trim_zfs_enable, value: 'YES' }
       notify:
         - sort periodic.conf

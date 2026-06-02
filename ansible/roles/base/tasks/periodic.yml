@@ -22,29 +22,50 @@
     - sort periodic.conf
 
 - name: Configuring Periodic Scripts
-  when: not is_jail and has_scripts
   block:
-    - name: Finding Periodic Scripts
-      ansible.builtin.find:
-        paths: /var/scripts/periodic/
-        recurse: true
-      register: find_scripts
+    - name: Configuring 900.pkg-update
+      block:
+        - name: Installing 900.pkg-update
+          ansible.builtin.copy:
+            src: files/periodic/daily/900.pkg-update
+            dest: /usr/local/etc/periodic/daily/
+            mode: '0755'
+        - name: Enabling 900.pkg-update
+          community.general.sysrc:
+            name: daily_pkg_update_enable
+            value: 'YES'
+            path: /etc/periodic.conf
+          notify:
+            - sort periodic.conf
 
-    - name: Linking Periodic Scripts
-      ansible.builtin.file:
-        src: '{{ item.path }}'
-        dest: "/usr/local/etc/periodic/{{ item.path | relpath('/var/scripts/periodic/') }}"
-        state: link
-      with_items: '{{ find_scripts.files }}'
+    - name: Configuring 900.ports-update
+      when: has_ports
+      block:
+        - name: Installing 900.ports-update
+          ansible.builtin.copy:
+            src: files/periodic/daily/900.ports-update
+            dest: /usr/local/etc/periodic/daily/
+            mode: '0755'
+        - name: Enabling 900.ports-update
+          community.general.sysrc:
+            name: daily_ports_update_enable
+            value: 'YES'
+            path: /etc/periodic.conf
+          notify:
+            - sort periodic.conf
 
-    - name: Updating periodic.conf
-      community.general.sysrc:
-        name: '{{ item.name }}'
-        value: '{{ item.value }}'
-        path: /etc/periodic.conf
-      with_items:
-        - { name: daily_pkg_update_enable, value: 'YES' }
-        - { name: daily_ports_update_enable, value: 'YES' }
-        - { name: daily_scripts_update_enable, value: 'YES' }
-      notify:
-        - sort periodic.conf
+    - name: Configuring 900.scripts-update
+      when: has_scripts and not is_jail
+      block:
+        - name: Installing 900.scripts-update
+          ansible.builtin.copy:
+            src: files/periodic/daily/900.scripts-update
+            dest: /usr/local/etc/periodic/daily/
+            mode: '0755'
+        - name: Enabling 900.scripts-update
+          community.general.sysrc:
+            name: daily_scripts_update_enable
+            value: 'YES'
+            path: /etc/periodic.conf
+          notify:
+            - sort periodic.conf
