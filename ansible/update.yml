@@ -67,33 +67,60 @@
     - name: Updating FreeBSD
       notify:
         - reboot
+      when: not is_pkgbase
       block:
+        - name: Fetching FreeBSD Updates
+          ansible.builtin.command: freebsd-update --not-running-from-cron fetch
+          register: freebsd_update_fetch
+          changed_when: false
+
+        - name: Checking FreeBSD Updates
+          ansible.builtin.set_fact:
+            freebsd_update: "{{ 'No updates needed to update system' not in freebsd_update_fetch.stdout_lines }}"
+          changed_when: false
+
+        - name: Fetching FreeBSD Jail Updates
+          ansible.builtin.command: freebsd-update -j {{ item }} --not-running-from-cron fetch
+          register: freebsd_update_jails_fetch
+          changed_when: false
+          with_items: '{{ jails }}'
+
+        - name: Checking FreeBSD Jail Updates
+          ansible.builtin.set_fact:
+            freebsd_update_jails: >-
+              {{ freebsd_update_jails_fetch.results | rejectattr('stdout_lines', 'search', 'No updates needed to update system') |
+                   map(attribute='item') | list }}
+          changed_when: false
+
+        - name: Checking Security
+          ansible.builtin.set_fact:
+            freebsd_update_secure: '{{ is_secure and (freebsd_update or freebsd_update_jails | length > 0) }}'
+          changed_when: false
+
         - name: Lowering Security
           ansible.builtin.command: sysrc kern_securelevel_enable="NO"
-          changed_when: false
-          when: is_secure
+          changed_when: true
+          when: freebsd_update_secure
 
         - name: Rebooting Host
           ansible.builtin.reboot:
-          when: is_secure
+          when: freebsd_update_secure
 
         - name: Updating FreeBSD
-          ansible.builtin.command: freebsd-update --not-running-from-cron fetch install
-          register: freebsd_update
-          changed_when: "'No updates are available to install.' not in freebsd_update.stdout_lines"
+          ansible.builtin.command: freebsd-update --not-running-from-cron install
+          register: freebsd_update_install
+          changed_when: true
+          when: freebsd_update
 
         - name: Updating FreeBSD Jails
-          ansible.builtin.command: freebsd-update -j {{ item }} --not-running-from-cron fetch install
-          register: freebsd_update_jails
-          changed_when: "'No updates are available to install.' not in freebsd_update_jails.stdout_lines"
-          with_items: '{{ jails }}'
+          ansible.builtin.command: freebsd-update -j {{ item }} --not-running-from-cron install
+          changed_when: true
+          with_items: '{{ freebsd_update_jails }}'
 
         - name: Raising Security
           ansible.builtin.command: sysrc kern_securelevel_enable="YES"
-          changed_when: false
-          when: is_secure
-      when: not is_pkgbase
-
+          changed_when: true
+          when: freebsd_update_secure
   handlers:
     - name: Updating INDEX
       ansible.builtin.command: make -C /usr/ports index
@@ -108,9 +135,9 @@
         mode: preserve # msdosfs
         remote_src: true
       with_items:
-        - efi/boot/{{ uefi_loader[ansible_facts["architecture"]] }}
+        - efi/boot/{{ uefi_loader[ansible_facts['architecture']] }}
         - efi/freebsd/loader.efi
-      when: "'/boot/loader.efi' in freebsd_update.stdout_lines"
+      when: "is_uefi and '/boot/loader.efi' in freebsd_update_install.stdout_lines"
       listen: reboot
 
     - name: Rebooting Host

@@ -1,7 +1,13 @@
+- name: Checking Boot Method
+  ansible.builtin.command: sysctl -n machdep.bootmethod
+  register: sysctl_bootmethod
+  changed_when: false
+  failed_when: false
+
 - name: Checking Disks
   ansible.builtin.find:
     patterns:
-      - '^a?da\d+$'
+      - '^[an]?da\d+$'
       - '^nvme\d+$'
     paths: /dev/
     file_type: any
@@ -71,7 +77,8 @@
     is_jail: '{{ sysctl_jailed.stdout == "1" }}'
     is_pkgbase: '{{ pkgbase.rc == 0 }}'
     is_secure: '{{ sysctl_securelevel.stdout | int > 0 }}'
-    is_vm: '{{ sysctl_vm_guest.stdout != "none" }}'
+    is_uefi: '{{ sysctl_bootmethod.stdout == "UEFI" }}'
+    is_vm_guest: '{{ sysctl_vm_guest.stdout != "none" }}'
     is_vnet: '{{ sysctl_vnet.stdout == "1" }}'
     jails: '{{ jls_names.stdout.split() }}'
     cacheable: true
