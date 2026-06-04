@@ -52,10 +52,10 @@ export DISTRIBUTIONS="kernel.txz base.txz src.txz"
 # - ZFS encryption is enabled by default on the zroot/var/backups dataset to
 #   support offsite backup to untrusted systems (eg. rsync.net)
 # - The zroot/tmp dataset is omitted in favor of tmpfs(5)
-# - pkg(7) is bootstrapped and the most recent quarterly branch of ports(7)
-#   is installed using Git
 # - The optional setup script is now a standalone script located at
 #   /etc/installerscript rather than being embedded within this file
+# - pkg(7) is bootstrapped and the most recent quarterly branch of ports(7)
+#   is installed using Git via the default installerscript.
 ################################################################################
 
 ############################################################ INCLUDES
@@ -368,18 +368,6 @@ bsdinstall rootpass
 
 # Finalize install
 bsdinstall config
-
-# Bootstrap pkg(7) and install most recent quarterly branch of ports(7)
-chroot $BSDINSTALL_CHROOT /bin/sh 2>&1 <<-'EOF'
-	pkg bootstrap -y
-	pkg update
-	pkg install -y git
-        pkg clean -ay
-
-	ports_repo="https://git.FreeBSD.org/ports.git"
-	ports_branch=$(git ls-remote --heads --sort=-v:refname $ports_repo "20[0-9][0-9]Q[1-4]" | head -n 1 | cut -f 3 -d /)
-	git clone -b $ports_branch --depth 1 $ports_repo /usr/ports
-EOF
 
 # Run post-install script
 if [ -f "$INSTALLER_SCRIPT" ]; then

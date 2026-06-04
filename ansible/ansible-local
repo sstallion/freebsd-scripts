@@ -1,2 +1,0 @@
-#!/bin/sh
-exec ansible-playbook --inventory "$(hostname)," --connection local "$@"

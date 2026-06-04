@@ -12,6 +12,7 @@
     - name: Updating Packages
       notify:
         - pkg clean
+      when: has_pkg
       block:
         - name: Updating Packages
           community.general.pkgng:
@@ -67,7 +68,7 @@
     - name: Updating FreeBSD
       notify:
         - reboot
-      when: not is_pkgbase
+      when: not has_pkgbase
       block:
         - name: Fetching FreeBSD Updates
           ansible.builtin.command: freebsd-update --not-running-from-cron fetch

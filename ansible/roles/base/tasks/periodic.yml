@@ -21,51 +21,22 @@
   notify:
     - sort periodic.conf
 
+- name: Installing Periodic Scripts
+  ansible.builtin.copy:
+    src: 'files/periodic/{{ item.dir }}/{{ item.script }}'
+    dest: '/usr/local/etc/periodic/{{ item.dir }}/'
+    mode: '0755'
+  when: '{{ item.when }}'
+  with_items:
+    - { script: 900.pkg-update, dir: daily, when: has_pkg }
+    - { script: 900.ports-update, dir: daily, when: has_ports }
+
 - name: Configuring Periodic Scripts
-  block:
-    - name: Configuring 900.pkg-update
-      block:
-        - name: Installing 900.pkg-update
-          ansible.builtin.copy:
-            src: files/periodic/daily/900.pkg-update
-            dest: /usr/local/etc/periodic/daily/
-            mode: '0755'
-        - name: Enabling 900.pkg-update
-          community.general.sysrc:
-            name: daily_pkg_update_enable
-            value: 'YES'
-            path: /etc/periodic.conf
-          notify:
-            - sort periodic.conf
-
-    - name: Configuring 900.ports-update
-      when: has_ports
-      block:
-        - name: Installing 900.ports-update
-          ansible.builtin.copy:
-            src: files/periodic/daily/900.ports-update
-            dest: /usr/local/etc/periodic/daily/
-            mode: '0755'
-        - name: Enabling 900.ports-update
-          community.general.sysrc:
-            name: daily_ports_update_enable
-            value: 'YES'
-            path: /etc/periodic.conf
-          notify:
-            - sort periodic.conf
-
-    - name: Configuring 900.scripts-update
-      when: has_scripts and not is_jail
-      block:
-        - name: Installing 900.scripts-update
-          ansible.builtin.copy:
-            src: files/periodic/daily/900.scripts-update
-            dest: /usr/local/etc/periodic/daily/
-            mode: '0755'
-        - name: Enabling 900.scripts-update
-          community.general.sysrc:
-            name: daily_scripts_update_enable
-            value: 'YES'
-            path: /etc/periodic.conf
-          notify:
-            - sort periodic.conf
+  community.general.sysrc:
+    name: '{{ item.name }}'
+    value: '{{ item.value }}'
+    path: /etc/periodic.conf
+  when: '{{ item.when }}'
+  with_items:
+    - { name: daily_pkg_update_enable, value: 'YES', when: has_pkg }
+    - { name: daily_ports_update_enable, value: 'YES', when: has_ports }

@@ -7,8 +7,7 @@
 - name: Checking Disks
   ansible.builtin.find:
     patterns:
-      - '^[an]?da\d+$'
-      - '^nvme\d+$'
+      - '^a?da\d+$'
     paths: /dev/
     file_type: any
     use_regex: true
@@ -26,8 +25,14 @@
   changed_when: false
   failed_when: false
 
-- name: Checking PKGBASE
-  ansible.builtin.command: pkg info FreeBSD-rc
+- name: Checking Packages
+  ansible.builtin.command: pkg -N
+  register: pkg
+  changed_when: false
+  failed_when: false
+
+- name: Checking Base Packages
+  ansible.builtin.command: pkg -N info FreeBSD-runtime
   register: pkgbase
   changed_when: false
   failed_when: false
@@ -71,14 +76,16 @@
 - name: Setting Facts
   ansible.builtin.set_fact:
     disks: '{{ find_disks.files }}'
+    has_disks: '{{ find_disks.files | length > 0 }}'
+    has_pkg: '{{ pkg.rc == 0 }}'
+    has_pkgbase: '{{ pkgbase.rc == 0 }}'
     has_ports: '{{ ports.rc == 0 }}'
     has_scripts: '{{ scripts.rc == 0 }}'
     has_zfs: '{{ kldstat_zfs.rc == 0 }}'
+    is_guest: '{{ sysctl_vm_guest.stdout != "none" }}'
     is_jail: '{{ sysctl_jailed.stdout == "1" }}'
-    is_pkgbase: '{{ pkgbase.rc == 0 }}'
     is_secure: '{{ sysctl_securelevel.stdout | int > 0 }}'
     is_uefi: '{{ sysctl_bootmethod.stdout == "UEFI" }}'
-    is_vm_guest: '{{ sysctl_vm_guest.stdout != "none" }}'
     is_vnet: '{{ sysctl_vnet.stdout == "1" }}'
     jails: '{{ jls_names.stdout.split() }}'
     cacheable: true

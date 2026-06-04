@@ -5,4 +5,4 @@
   with_items:
     - '# Check for updates daily.'
     - "@daily\t\t\t\t\troot\tfreebsd-update cron" # noqa: no-tabs
-  when: not is_pkgbase
+  when: not has_pkgbase

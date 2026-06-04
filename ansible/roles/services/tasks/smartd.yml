@@ -1,7 +1,7 @@
 - name: Configuring smartd
   notify:
     - restart smartd
-  when: disks | length > 0 and not is_vm_guest
+  when: not is_guest
   block:
     - name: Installing smartmontools
       notify:

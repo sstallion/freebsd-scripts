@@ -16,8 +16,8 @@
         - hosts
         - mail
         - periodic
-        - pkg
         - root
+        - scripts
         - zfs
       loop_control:
         loop_var: file

@@ -14,7 +14,7 @@
         - hosts
         - mail
         - periodic
-        - pkg
+        - scripts
       loop_control:
         loop_var: file
 

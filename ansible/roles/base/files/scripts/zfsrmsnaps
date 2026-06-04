@@ -1,7 +1,7 @@
-#!/bin/sh -e
+#!/bin/sh
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Copyright (c) 2024 Steven Stallion <sstallion@gmail.com>
+# Copyright (c) 2025 Steven Stallion <sstallion@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,16 +24,19 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-# Bootstrap pkg(7) and install most recent quarterly branch of ports(7)
-pkg bootstrap -y
-pkg update
-pkg install -y git
-pkg clean -ay
+set -o errexit
 
-ports_repo="https://git.FreeBSD.org/ports.git"
-ports_branch=$(git ls-remote --heads --sort=-v:refname $ports_repo "20[0-9][0-9]Q[1-4]" | head -n 1 | cut -f 3 -d /)
-git clone -b $ports_branch --depth 1 $ports_repo /usr/ports
+if [ $# -lt 1 ]; then
+	echo 1>&2 "Usage: $(basename $0) filesystem ..."
+	exit 1
+fi
 
-# Permit root login via SSH for initial provisioning
-sed -i '' -E 's/^#?(PermitRootLogin).*$/\1 yes/' /etc/ssh/sshd_config
+# Destroy snapshots in descending order:
+for snapshot in $(zfs list -H -S creation -o name -t snapshot $*); do
+	# Holds must be released prior to destroying a snapshot:
+	for tag in $(zfs holds -H $snapshot | cut -f 2); do
+		zfs release $tag $snapshot
+	done
+	zfs destroy $snapshot
+done
 exit 0

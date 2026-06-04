@@ -1,0 +1,12 @@
+- name: Installing Scripts
+  ansible.builtin.copy:
+    src: 'files/scripts/{{ item.script }}'
+    dest: '{{ item.dest }}'
+    mode: '0555'
+  when: '{{ item.when }}'
+  with_items:
+    - { script: jib, dest: /usr/sbin, when: not is_jail }
+    - { script: apmdisable, dest: /usr/local/sbin, when: has_disks }
+    - { script: zfsholds, dest: /usr/local/sbin, when: has_zfs }
+    - { script: zfsrehold, dest: /usr/local/sbin, when: has_zfs }
+    - { script: zfsrmsnaps, dest: /usr/local/sbin, when: has_zfs }
