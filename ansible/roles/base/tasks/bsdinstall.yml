@@ -1,0 +1,6 @@
+- name: Configuring FreeBSD Installer
+  ansible.builtin.copy:
+    src: files/bsdinstall
+    dest: /usr/local/libexec/
+    mode: preserve
+  when: not is_jail

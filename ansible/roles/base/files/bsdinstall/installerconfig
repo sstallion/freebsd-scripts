@@ -357,7 +357,7 @@ bsdinstall distextract
 
 # Configure bootloader
 echo "autoboot_delay=\"-1\"" >>$BSDINSTALL_TMPBOOT/loader.conf.autoboot
-echo "beastie_disable=\"YES\"">>$BSDINSTALL_TMPBOOT/loader.conf.autoboot
+echo "beastie_disable=\"YES\"" >>$BSDINSTALL_TMPBOOT/loader.conf.autoboot
 bsdinstall bootconfig
 
 # Configure system

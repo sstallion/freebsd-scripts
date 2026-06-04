@@ -14,8 +14,8 @@
 
     - name: Installing Backup Scripts
       ansible.builtin.copy:
-        src: files/backups/
-        dest: /usr/local/libexec/backups/
+        src: files/backups
+        dest: /usr/local/libexec/
         mode: preserve
 
     - name: Installing Backup Log Rotation

@@ -36,9 +36,8 @@ export DISTRIBUTIONS="base.txz"
 #
 # - The mirror selection dialog will not be shown; the main site will always
 #   be selected.
-# - Fetched distributions will match the host's processor and release.
+# - Fetched distributions will match the host processor and release.
 # - ZFS datasets will be created automatically for root filesystems.
-# - pkg(7) is bootstrapped and additional packages are installed by default.
 # - The rootpass, adduser, and services dialogs will not be shown.
 ################################################################################
 
