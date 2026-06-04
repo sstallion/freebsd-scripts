@@ -1,0 +1,28 @@
+- name: Configuring Backups
+  when: not is_guest and not is_jail
+  block:
+    - name: Installing Packages
+      notify:
+        - pkg clean
+      community.general.pkgng:
+        name: '{{ item.name }}'
+        state: present
+      when: '{{ item.when }}'
+      with_items:
+        - { name: [flock, moreutils, py311-rdiff-backup], when: true }
+        - { name: [py311-zfs-autobackup], when: has_zfs }
+
+    - name: Installing Backup Scripts
+      ansible.builtin.copy:
+        src: files/backups/
+        dest: /usr/local/libexec/backups/
+        mode: preserve
+
+    - name: Installing Backup Log Rotation
+      notify:
+        - create logs
+      ansible.builtin.copy:
+        src: /usr/local/libexec/backups/backups.conf.sample
+        dest: /usr/local/etc/newsyslog.conf.d/backups.conf
+        mode: '0644'
+        remote_src: true

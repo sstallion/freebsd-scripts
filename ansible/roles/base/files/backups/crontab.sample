@@ -4,6 +4,6 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 #minute	hour	mday	month	wday	who	command
 #
 # Backup files after daily/weekly/monthly maintenance.
-45	6	*	*	*	root	/var/scripts/backup/rdiff-backup.sh <name> cron
+45	6	*	*	*	root	/usr/local/libexec/backups/rdiff-backup.sh <name> cron
 # Snapshot ZFS datasets at midnight.
-@daily					root	/var/scripts/backup/zfs-autobackup.sh <name> cron
+@daily					root	/usr/local/libexec/backups/zfs-autobackup.sh <name> cron

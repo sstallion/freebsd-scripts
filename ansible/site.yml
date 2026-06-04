@@ -10,6 +10,7 @@
         name: base
         tasks_from: '{{ file }}'
       loop:
+        - backups
         - console
         - devices
         - freebsd-update
