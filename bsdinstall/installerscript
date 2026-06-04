@@ -33,7 +33,4 @@ pkg clean -ay
 ports_repo="https://git.FreeBSD.org/ports.git"
 ports_branch=$(git ls-remote --heads --sort=-v:refname $ports_repo "20[0-9][0-9]Q[1-4]" | head -n 1 | cut -f 3 -d /)
 git clone -b $ports_branch --depth 1 $ports_repo /usr/ports
-
-# Permit root login via SSH for initial provisioning
-sed -i '' -E 's/^#?(PermitRootLogin).*$/\1 yes/' /etc/ssh/sshd_config
 exit 0
