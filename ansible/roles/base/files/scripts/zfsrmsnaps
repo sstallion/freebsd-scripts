@@ -31,9 +31,9 @@ if [ $# -lt 1 ]; then
 	exit 1
 fi
 
-# Destroy snapshots in descending order:
+# Destroy snapshots in descending order
 for snapshot in $(zfs list -H -S creation -o name -t snapshot $*); do
-	# Holds must be released prior to destroying a snapshot:
+	# Holds must be released prior to destroying a snapshot
 	for tag in $(zfs holds -H $snapshot | cut -f 2); do
 		zfs release $tag $snapshot
 	done

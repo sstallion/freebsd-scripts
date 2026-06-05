@@ -18,7 +18,7 @@
         dest: /usr/local/libexec/
         mode: preserve
 
-    - name: Installing Backup Log Rotation
+    - name: Configuring Backup Logs
       notify:
         - create logs
       ansible.builtin.copy:

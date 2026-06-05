@@ -26,16 +26,16 @@
 
 set -o errexit
 
-# Bootstrap pkg(7) and install most recent quarterly branch of ports(7)
+# Bootstrap pkg(7) and install additional packages
 pkg bootstrap -y
 pkg update
-pkg install -y git
+pkg install -y git python3
 pkg clean -ay
 
+# Install most recent quarterly branch of ports(7)
 ports_repo="https://git.FreeBSD.org/ports.git"
 ports_branch=$(git ls-remote --heads --sort=-v:refname $ports_repo '20[0-9][0-9]Q[1-4]' | head -n 1 | cut -f 3 -d /)
 git clone -b $ports_branch --depth 1 $ports_repo /usr/ports
 
 # Enable root login via SSH for initial provisioning
 sed -i '' -E 's/^#?(PermitRootLogin).*$/\1 yes/' /etc/ssh/sshd_config
-exit 0

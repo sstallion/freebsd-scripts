@@ -46,12 +46,6 @@ DOCUMENTATION = """
             type: str
             vars:
                 - name: ansible_jail_name
-        jail_host:
-            description: Hostname or IP of the FreeBSD host that runs the jail.
-            type: str
-            required: true
-            vars:
-                - name: ansible_jail_host
         jail_root:
             description:
                 - Absolute on-host filesystem path of the jail, used as the
@@ -77,6 +71,15 @@ DOCUMENTATION = """
             choices: [doas, sudo]
             vars:
                 - name: ansible_jail_privilege_escalation
+        inventory_hostname:
+            type: str
+            vars:
+                - name: inventory_hostname
+        remote_user:
+            type: str
+            vars:
+                - name: ansible_user
+                - name: ansible_ssh_user
 """
 
 
@@ -178,7 +181,7 @@ class Connection(SSHConnection):
 
     @property
     def jail_name(self):
-        name = self.get_option("jail_name") or self._play_context.remote_addr
+        name = self.get_option("jail_name") or self.get_option("inventory_hostname")
         return validate_jail_name(name)
 
     @property
@@ -198,29 +201,11 @@ class Connection(SSHConnection):
             )
         return value
 
+    @property
+    def ispriv(self):
+        return self.get_option("remote_user") == "root"
+
     # ---- connect / lifecycle --------------------------------------------
-
-    def _connect(self):
-        if self._connected:
-            return self
-
-        jail_host = (self.get_option("jail_host") or "").strip()
-        if not jail_host:
-            raise AnsibleConnectionFailure(
-                f"ansible_jail_host is not set for jail {self.jail_name!r}"
-            )
-        # Redirect the inherited SSH plugin at the jail *host* instead of the
-        # jail (inventory) name. This is the one hook we need -- everything
-        # else comes from the SSH base class.
-        self.set_option("host", jail_host)
-        super()._connect()
-        # SSH's _connect is a no-op on _connected, but ConnectionBase's
-        # exec_command/put_file/fetch_file are wrapped with @ensure_connect,
-        # which re-enters self._connect() whenever _connected is False. We
-        # flip it here so the jail-root probe issued on first file op (via
-        # super().exec_command) doesn't recurse into us.
-        self._connected = True
-        return self
 
     def close(self):
         self._jail_root = None
@@ -249,9 +234,8 @@ class Connection(SSHConnection):
             return self._jail_root
 
         name = self.jail_name
-        rc, stdout, stderr = super().exec_command(
-            _shelljoin(self.privesc, "jls", "-j", name, "path")
-        )
+        argv = self._jail_command("jls", "-j", name, "path")
+        rc, stdout, stderr = super().exec_command(_shelljoin(*argv))
         if rc != 0:
             msg = _decode(stderr).strip() or "jail not found or inaccessible"
             raise AnsibleConnectionFailure(f"Cannot access jail {name!r}: {msg}")
@@ -265,6 +249,9 @@ class Connection(SSHConnection):
         display.vvv(f"jailexec: jail {name!r} root is {root}", host=name)
         return root
 
+    def _jail_command(self, *args):
+        return [*args] if self.ispriv else [self.privesc, *args]
+
     def _jail_path(self, path):
         """Map a path inside the jail to its absolute path on the host."""
         ensure_no_traversal(path)
@@ -277,8 +264,8 @@ class Connection(SSHConnection):
         if not cmd or not str(cmd).strip():
             raise AnsibleError("Command cannot be empty")
 
-        argv = [self.privesc, "jexec"]
-        if self.jail_user != "root":
+        argv = self._jail_command("jexec")
+        if not self.ispriv and self.jail_user != "root":
             argv += ["-u", self.jail_user]
         argv += [self.jail_name, "/bin/sh", "-c", cmd]
         wrapped = _shelljoin(*argv)
@@ -298,7 +285,7 @@ class Connection(SSHConnection):
         # Single round-trip: mkdir + move. Both go through privilege
         # escalation because the destination lives inside the jail root,
         # which is typically only writable by root on the host.
-        pe = shlex.quote(self.privesc)
+        pe = "" if self.ispriv else shlex.quote(self.privesc)
         move = (
             f"{pe} mkdir -p {shlex.quote(dest_dir)} && "
             f"{pe} mv {shlex.quote(staged)} {shlex.quote(dest)}"

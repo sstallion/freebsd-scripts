@@ -3,9 +3,9 @@
     src: 'files/scripts/{{ item.script }}'
     dest: '{{ item.dest }}'
     mode: '0555'
-  when: '{{ item.when }}'
+  when: '{{ not is_jail and item.when }}'
   with_items:
-    - { script: jib, dest: /usr/sbin, when: not is_jail }
+    - { script: jib, dest: /usr/sbin, when: true }
     - { script: apmdisable, dest: /usr/local/sbin, when: has_disks }
     - { script: zfsholds, dest: /usr/local/sbin, when: has_zfs }
     - { script: zfsrehold, dest: /usr/local/sbin, when: has_zfs }

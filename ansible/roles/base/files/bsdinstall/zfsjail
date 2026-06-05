@@ -98,6 +98,15 @@ bsdinstall config
 cp /etc/resolv.conf $BSDINSTALL_CHROOT/etc
 cp /etc/localtime $BSDINSTALL_CHROOT/etc
 
+# Bootstrap pkg(7) and install additional packages
+chroot $BSDINSTALL_CHROOT /bin/sh 2>&1 <<-'EOF'
+	touch /etc/fstab
+	pkg bootstrap -y
+	pkg update
+	pkg install -y python3
+        pkg clean -ay
+EOF
+
 bsdinstall entropy
 bsdinstall umount
 

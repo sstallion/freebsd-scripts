@@ -1,5 +1,5 @@
-- name: Configuring Host
-  hosts: all
+- name: Configuring Hosts
+  hosts: freebsd_hosts
   roles:
     - common
   vars:
@@ -34,6 +34,35 @@
         - ntpd
         - smartd
         - sshd
+        - syslogd
+      loop_control:
+        loop_var: file
+
+- name: Configuring Jails
+  hosts: freebsd_jails
+  roles:
+    - common
+  vars:
+    requires_jail: true
+  tasks:
+    - name: Configuring Base
+      ansible.builtin.include_role:
+        name: base
+        tasks_from: '{{ file }}'
+      loop:
+        - freebsd-update
+        - hosts
+        - mail
+        - periodic
+      loop_control:
+        loop_var: file
+
+    - name: Configuring Services
+      ansible.builtin.include_role:
+        name: services
+        tasks_from: '{{ file }}'
+      loop:
+        - dma
         - syslogd
       loop_control:
         loop_var: file
